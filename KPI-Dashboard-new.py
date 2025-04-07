@@ -79,27 +79,31 @@ if uploaded_file:
             st.plotly_chart(fig_provider, use_container_width=True)
 
         # Monatliche Verbrauchs- und Kostenauswertung
-        if 'Monat' in df_standort.columns:
-            df_monat = df_standort.groupby('Monat').agg({
+        if 'Monat (MM/JJJJ)' in df_standort.columns:
+            df_monat = df_standort.groupby('Monat (MM/JJJJ)').agg({
                 'Verbrauch_kWh': 'sum',
                 'Kosten_EUR': 'sum'
-            }).reset_index().sort_values('Monat')
+            }).reset_index().sort_values('Monat (MM/JJJJ)')
 
             line_col1, line_col2 = st.columns(2)
 
             with line_col1:
-                fig_verbrauch = px.line(df_monat, x='Monat', y='Verbrauch_kWh',
+                fig_verbrauch = px.line(df_monat,
+                                        x='Monat (MM/JJJJ)',
+                                        y='Verbrauch_kWh',
                                         title='Monatlicher Verbrauch (kWh)',
                                         markers=True)
                 st.plotly_chart(fig_verbrauch, use_container_width=True)
 
             with line_col2:
-                fig_kosten = px.line(df_monat, x='Monat', y='Kosten_EUR',
+                fig_kosten = px.line(df_monat,
+                                     x='Monat (MM/JJJJ)',
+                                     y='Kosten_EUR',
                                      title='Monatliche Kosten (€)',
                                      markers=True)
                 st.plotly_chart(fig_kosten, use_container_width=True)
         else:
-            st.warning("⚠️ 'Monat'-Spalte nicht gefunden. Monatliche Auswertung wird übersprungen.")
+            st.warning("⚠️ 'Monat (MM/JJJJ)'-Spalte nicht gefunden. Monatliche Auswertung wird übersprungen.")
 
     # Optional: Tabelle mit Einzelwerten
     with st.expander("📄 Einzelne Ladevorgänge anzeigen"):
