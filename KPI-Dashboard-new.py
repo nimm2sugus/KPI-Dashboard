@@ -26,23 +26,19 @@ if uploaded_file:
     df['Verbrauch_kWh'] = pd.to_numeric(df['Verbrauch (kWh)'], errors='coerce')
     df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
 
-    # Spalte 'Beendet' in Datum umwandeln & Monat extrahieren
-    df['Beendet'] = pd.to_datetime(df['Beendet'], errors='coerce')
-    df['Monat'] = df['Beendet'].dt.strftime('%m/%Y')  # Monat im Format MM/JJJJ
-
     # Standortfilter
     standorte = df['Standortname'].dropna().unique()
     selected = st.multiselect("🏢 Lade-Standorte filtern", standorte, default=list(standorte))
     df_filtered = df[df['Standortname'].isin(selected)]
 
-    # ✅ Korrekte KPI-Gruppierung nach Standort (Basis für Balkendiagramme)
+    # ✅ Allgemeine KPIs nach Standort (Summen der Verbrauch und Kosten)
     grouped = df_filtered.groupby('Standortname', as_index=False).agg({
         'Verbrauch_kWh': 'sum',
         'Kosten_EUR': 'sum'
     })
 
     # KPIs anzeigen
-    st.subheader("🔢 KPIs nach Standort")
+    st.subheader("🔢 Allgemeine KPIs nach Standort")
     st.dataframe(grouped, use_container_width=True)
 
     # Balkendiagramme: Verbrauch & Kosten
@@ -58,14 +54,14 @@ if uploaded_file:
         fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR", title="Gesamtkosten", color="Standortname")
         st.plotly_chart(fig2, use_container_width=True)
 
-    # 📊 Detaillierte Auswertung pro Standort
+    # 📊 Detaillierte Auswertung pro Standort (Auth. Typ & Provider)
     st.subheader("📊 Detaillierte Auswertung pro Standort")
 
     for standort in selected:
         st.markdown(f"### 📍 {standort}")
         df_standort = df_filtered[df_filtered['Standortname'] == standort]
 
-        # Pie-Charts
+        # Pie-Charts: Auth. Typ und Provider
         pie_col1, pie_col2 = st.columns(2)
 
         with pie_col1:
@@ -82,8 +78,14 @@ if uploaded_file:
                                   title="Provider Verteilung")
             st.plotly_chart(fig_provider, use_container_width=True)
 
-        # Monatliche Verbrauchs- und Kostenauswertung
-        if 'Monat' in df_standort.columns:
+        # 📅 Monatliche Trends aus 'Beendet'
+        st.subheader("📈 Monatliche Trends")
+
+        if 'Beendet' in df_standort.columns:
+            # Monat aus 'Beendet' extrahieren
+            df_standort['Monat'] = df_standort['Beendet'].dt.strftime('%m/%Y')  # Monat (MM/JJJJ)
+
+            # Gruppieren nach Monat (MM/JJJJ)
             df_monat = df_standort.groupby('Monat', as_index=False).agg({
                 'Verbrauch_kWh': 'sum',
                 'Kosten_EUR': 'sum'
@@ -107,7 +109,7 @@ if uploaded_file:
                                      markers=True)
                 st.plotly_chart(fig_kosten, use_container_width=True)
         else:
-            st.warning("⚠️ 'Monat'-Spalte nicht gefunden. Monatliche Auswertung wird übersprungen.")
+            st.warning("⚠️ 'Beendet'-Spalte nicht gefunden. Monatliche Auswertung wird übersprungen.")
 
     # Optional: Tabelle mit Einzelwerten
     with st.expander("📄 Einzelne Ladevorgänge anzeigen"):
