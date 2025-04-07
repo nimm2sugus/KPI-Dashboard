@@ -111,6 +111,31 @@ if uploaded_file:
         else:
             st.warning("⚠️ 'Beendet'-Spalte nicht gefunden. Monatliche Auswertung wird übersprungen.")
 
-    # Optional: Tabelle mit Einzelwerten
-    with st.expander("📄 Einzelne Ladevorgänge anzeigen"):
-        st.dataframe(df_filtered, use_container_width=True)
+        # 📅 Alle Ladevorgänge für den jeweiligen Monat
+        st.subheader("📄 Alle Ladevorgänge für den jeweiligen Monat")
+
+        # Zeige die Ladevorgänge für den aktuellen Monat an
+        df_monat_ladevorgänge = df_standort[
+            ['Standortname', 'Gestartet', 'Beendet', 'Verbrauch_kWh', 'Kosten_EUR', 'Auth. Typ', 'Provider', 'Monat']]
+
+        st.dataframe(df_monat_ladevorgänge, use_container_width=True)
+
+        # Liniendiagramm für alle Ladevorgänge über die Zeit
+        st.subheader("📊 Alle Ladevorgänge über die Zeit")
+
+        # Zeitstempel "Beendet" verwenden, um alle Ladevorgänge auf einer Zeitachse darzustellen
+        df_standort_sorted = df_standort.sort_values('Beendet')
+
+        # Erstellen der Liniendiagramme für Verbrauch und Kosten
+        fig_ladevorgänge = px.line(df_standort_sorted,
+                                   x='Beendet',
+                                   y=['Verbrauch_kWh', 'Kosten_EUR'],
+                                   title='Verbrauch und Kosten der Ladevorgänge über die Zeit',
+                                   markers=True)
+
+        st.plotly_chart(fig_ladevorgänge, use_container_width=True)
+
+    # Optional: Tabelle mit Einzelwerten für alle Standorte anzeigen
+    with st.expander("📄 Einzelne Ladevorgänge aller Standorte anzeigen"):
+        st.dataframe(df_filtered[['Standortname', 'Gestartet', 'Beendet', 'Verbrauch_kWh', 'Kosten_EUR', 'Auth. Typ',
+                                  'Provider']], use_container_width=True)
