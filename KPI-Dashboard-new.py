@@ -26,6 +26,10 @@ if uploaded_file:
     df['Verbrauch_kWh'] = pd.to_numeric(df['Verbrauch (kWh)'], errors='coerce')
     df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
 
+    # Spalte 'Beendet' in Datum umwandeln & Monat extrahieren
+    df['Beendet'] = pd.to_datetime(df['Beendet'], errors='coerce')
+    df['Monat'] = df['Beendet'].dt.strftime('%m/%Y')  # Monat im Format MM/JJJJ
+
     # Standortfilter
     standorte = df['Standortname'].dropna().unique()
     selected = st.multiselect("🏢 Lade-Standorte filtern", standorte, default=list(standorte))
@@ -79,17 +83,17 @@ if uploaded_file:
             st.plotly_chart(fig_provider, use_container_width=True)
 
         # Monatliche Verbrauchs- und Kostenauswertung
-        if 'Monat (MM/JJJJ)' in df_standort.columns:
-            df_monat = df_standort.groupby('Monat (MM/JJJJ)', as_index=False).agg({
+        if 'Monat' in df_standort.columns:
+            df_monat = df_standort.groupby('Monat', as_index=False).agg({
                 'Verbrauch_kWh': 'sum',
                 'Kosten_EUR': 'sum'
-            }).sort_values('Monat (MM/JJJJ)')
+            }).sort_values('Monat')
 
             line_col1, line_col2 = st.columns(2)
 
             with line_col1:
                 fig_verbrauch = px.line(df_monat,
-                                        x='Monat (MM/JJJJ)',
+                                        x='Monat',
                                         y='Verbrauch_kWh',
                                         title='Monatlicher Verbrauch (kWh)',
                                         markers=True)
@@ -97,13 +101,13 @@ if uploaded_file:
 
             with line_col2:
                 fig_kosten = px.line(df_monat,
-                                     x='Monat (MM/JJJJ)',
+                                     x='Monat',
                                      y='Kosten_EUR',
                                      title='Monatliche Kosten (€)',
                                      markers=True)
                 st.plotly_chart(fig_kosten, use_container_width=True)
         else:
-            st.warning("⚠️ 'Monat (MM/JJJJ)'-Spalte nicht gefunden. Monatliche Auswertung wird übersprungen.")
+            st.warning("⚠️ 'Monat'-Spalte nicht gefunden. Monatliche Auswertung wird übersprungen.")
 
     # Optional: Tabelle mit Einzelwerten
     with st.expander("📄 Einzelne Ladevorgänge anzeigen"):
