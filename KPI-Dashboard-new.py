@@ -31,17 +31,17 @@ if uploaded_file:
     selected = st.multiselect("🏢 Lade-Standorte filtern", standorte, default=list(standorte))
     df_filtered = df[df['Standortname'].isin(selected)]
 
-    # Standort-KPIs gruppiert
-    grouped = df_filtered.groupby('Standortname').agg({
+    # ✅ Korrekte KPI-Gruppierung nach Standort (Basis für Balkendiagramme)
+    grouped = df_filtered.groupby('Standortname', as_index=False).agg({
         'Verbrauch_kWh': 'sum',
         'Kosten_EUR': 'sum'
-    }).reset_index()
+    })
 
     # KPIs anzeigen
     st.subheader("🔢 KPIs nach Standort")
     st.dataframe(grouped, use_container_width=True)
 
-    # Diagramme: Verbrauch & Kosten
+    # Balkendiagramme: Verbrauch & Kosten
     col1, col2 = st.columns(2)
 
     with col1:
@@ -54,7 +54,7 @@ if uploaded_file:
         fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR", title="Gesamtkosten", color="Standortname")
         st.plotly_chart(fig2, use_container_width=True)
 
-    # Pie-Charts + Monatsauswertung: Auth. Typ, Provider und monatliche KPIs
+    # 📊 Detaillierte Auswertung pro Standort
     st.subheader("📊 Detaillierte Auswertung pro Standort")
 
     for standort in selected:
@@ -80,10 +80,10 @@ if uploaded_file:
 
         # Monatliche Verbrauchs- und Kostenauswertung
         if 'Monat (MM/JJJJ)' in df_standort.columns:
-            df_monat = df_standort.groupby('Monat (MM/JJJJ)').agg({
+            df_monat = df_standort.groupby('Monat (MM/JJJJ)', as_index=False).agg({
                 'Verbrauch_kWh': 'sum',
                 'Kosten_EUR': 'sum'
-            }).reset_index().sort_values('Monat (MM/JJJJ)')
+            }).sort_values('Monat (MM/JJJJ)')
 
             line_col1, line_col2 = st.columns(2)
 
