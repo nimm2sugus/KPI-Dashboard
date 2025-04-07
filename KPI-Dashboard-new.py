@@ -41,7 +41,7 @@ if uploaded_file:
     st.subheader("🔢 KPIs nach Standort")
     st.dataframe(grouped, use_container_width=True)
 
-    # Diagramme
+    # Diagramme: Verbrauch & Kosten
     col1, col2 = st.columns(2)
 
     with col1:
@@ -50,9 +50,32 @@ if uploaded_file:
         st.plotly_chart(fig1, use_container_width=True)
 
     with col2:
-        st.subheader("💶 Kosten nach Standort (€)")
+        st.subheader("💶 Ladekosten nach Standort (€)")
         fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR", title="Gesamtkosten", color="Standortname")
         st.plotly_chart(fig2, use_container_width=True)
+
+    # Pie-Charts: Auth. Typ & Provider (standortspezifisch)
+    st.subheader("📊 Verteilung von Auth. Typ und Provider nach Standort")
+
+    for standort in selected:
+        st.markdown(f"### 📍 {standort}")
+        df_standort = df_filtered[df_filtered['Standortname'] == standort]
+
+        pie_col1, pie_col2 = st.columns(2)
+
+        with pie_col1:
+            auth_counts = df_standort['Auth. Typ'].value_counts().reset_index()
+            auth_counts.columns = ['Auth. Typ', 'Anzahl']
+            fig_auth = px.pie(auth_counts, names='Auth. Typ', values='Anzahl',
+                              title="Auth. Typ Verteilung")
+            st.plotly_chart(fig_auth, use_container_width=True)
+
+        with pie_col2:
+            provider_counts = df_standort['Provider'].value_counts().reset_index()
+            provider_counts.columns = ['Provider', 'Anzahl']
+            fig_provider = px.pie(provider_counts, names='Provider', values='Anzahl',
+                                  title="Provider Verteilung")
+            st.plotly_chart(fig_provider, use_container_width=True)
 
     # Optional: Tabelle mit Einzelwerten
     with st.expander("📄 Einzelne Ladevorgänge anzeigen"):
