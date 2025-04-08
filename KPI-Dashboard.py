@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 
-
 # Funktion zum Laden der Excel-Datei
 @st.cache_data
 def load_excel_file(uploaded_file):
@@ -13,7 +12,6 @@ def load_excel_file(uploaded_file):
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
-
 # Funktion zum Konvertieren der Zeitspalten in datetime
 def convert_to_datetime(df, start_col, end_col):
     try:
@@ -24,7 +22,6 @@ def convert_to_datetime(df, start_col, end_col):
     except Exception as e:
         st.error(f"Fehler bei der Konvertierung der Zeitspalten: {e}")
     return df
-
 
 # Streamlit-Oberfläche
 # Setze die Seitenkonfiguration, um die volle Breite zu nutzen
@@ -60,5 +57,28 @@ if uploaded_file is not None:
         columns = st.multiselect("Wähle Spalten zur Anzeige", df.columns.tolist(), default=df.columns.tolist())
 
         # Zeige den gefilterten DataFrame
-        if columns:
-            st.write(df[columns])
+        filtered_df = df[columns] if columns else df
+        st.write(filtered_df)
+
+        # Schaltfläche zum Bestätigen der gefilterten DataFrame-Daten
+        if st.button("Bestätige die Auswahl der gefilterten Daten"):
+            st.success("Gefilterte Daten wurden bestätigt.")
+
+            # Dropdown-Liste zur Auswahl der Standorte
+            if 'Standort' in filtered_df.columns:
+                selected_standorte = st.multiselect(
+                    "Wähle einen oder mehrere Standorte",
+                    filtered_df['Standort'].unique().tolist(),
+                    default=filtered_df['Standort'].unique().tolist()
+                )
+
+                # Schaltfläche zum Bestätigen der Standortauswahl
+                if st.button("Bestätige Standortauswahl"):
+                    st.success(f"Ausgewählte Standorte: {', '.join(selected_standorte)}")
+
+                    # Filtere den DataFrame nach den ausgewählten Standorten
+                    final_df = filtered_df[filtered_df['Standort'].isin(selected_standorte)]
+                    st.write("Gefilterte Daten für die ausgewählten Standorte:")
+                    st.write(final_df)
+            else:
+                st.warning("Die Spalte 'Standort' wurde in den Daten nicht gefunden.")
