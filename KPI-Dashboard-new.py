@@ -24,8 +24,10 @@ def load_and_prepare_excel(file):
     df.columns = df.columns.str.strip()  # Spaltennamen bereinigen
 
     expected_cols = ['Standortname', 'Verbrauch', 'Kosten', 'Standzeit']
-    if not all(col in df.columns for col in expected_cols):
-        return None
+    missing_cols = [col for col in expected_cols if col not in df.columns]
+
+    if missing_cols:
+        return None, missing_cols
 
     # Standzeit umrechnen
     df["Standzeit_min"] = df["Standzeit"].apply(parse_standzeit)
@@ -35,18 +37,17 @@ def load_and_prepare_excel(file):
     df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
     # Verbrauch pro Minute berechnen (KPI)
     df["Verbrauch pro Minute"] = df.apply(
-        lambda row: row["Verbrauch"] / row["Standzeit_min"] if row["Standzeit_min"] and row[
-            "Standzeit_min"] > 0 else None,
+        lambda row: row["Verbrauch"] / row["Standzeit_min"] if row["Standzeit_min"] and row[ "Standzeit_min"] > 0 else None,
         axis=1)
 
-    return df
+    return df, missing_cols
 
 # Verarbeitung starten
 if uploaded_file:
-    df = load_and_prepare_excel(uploaded_file)
+    df, missing_cols = load_and_prepare_excel(uploaded_file)
 
     if df is None:
-        st.error("❌ Die Datei enthält nicht alle erwarteten Spalten.")
+        st.error(f"❌ Die Datei enthält nicht alle erwarteten Spalten: {', '.join(missing_cols)}.")
         st.stop()
 
     st.success("✅ Datei erfolgreich verarbeitet!")
