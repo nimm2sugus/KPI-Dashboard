@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Funktion zum Laden der Excel-Datei
+@st.cache_data
 def load_excel_file(uploaded_file):
     try:
         # Versuchen, die Excel-Datei zu laden
