@@ -11,10 +11,8 @@ def load_excel_file(uploaded_file):
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
-# Funktion zum Konvertieren der Zeitspalten in datetime und Ladezeit berechnen
-def convert_and_calculate_ladezeit(df, start_col, end_col):
-    df[start_col] = pd.to_datetime(df[start_col], format='%d.%m.%Y %H:%M', errors='coerce')
-    df[end_col] = pd.to_datetime(df[end_col], format='%d.%m.%Y %H:%M', errors='coerce')
+# Funktion zum Berechnen der Ladezeit (Differenz zwischen Endzeit und Startzeit)
+def calculate_ladezeit(df, start_col, end_col):
     # Ladezeit berechnen (Differenz in Stunden)
     df['Ladezeit'] = (df[end_col] - df[start_col]).dt.total_seconds() / 3600
     return df
@@ -33,8 +31,9 @@ if uploaded_file is not None:
     df = load_excel_file(uploaded_file)
 
     if df is not None:
-        # Konvertiere 'Startzeit' und 'Endzeit' zu datetime und berechne Ladezeit
-        df = convert_and_calculate_ladezeit(df, 'Startzeit', 'Endzeit')
+        # Berechnung der Ladezeit (falls Startzeit und Endzeit vorhanden sind)
+        if 'Startzeit' in df.columns and 'Endzeit' in df.columns:
+            df['Ladezeit'] = (df['Endzeit'] - df['Startzeit']).dt.total_seconds() / 3600
 
         # Darstellung des Verbrauchs als Liniendiagramm (Ladeenergie über Startzeit)
         st.subheader("Verbrauch der Ladevorgänge im Zeitverlauf")
