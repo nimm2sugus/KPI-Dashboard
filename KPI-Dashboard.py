@@ -30,6 +30,6 @@ if uploaded_file is not None:
         st.write(df)
 
         # Darstellung der Ladeenergie als Liniendiagramm
-        if 'Ladeenergie' in df.columns:
+        if 'Verbrauch (kWh)' in df.columns:
             st.subheader("Verbrauch der Ladevorgänge (Ladeenergie)")
-            st.line_chart(df['Ladeenergie'])
+            st.line_chart(df['Verbrauch (kWh)'])
