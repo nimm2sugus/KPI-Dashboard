@@ -44,8 +44,9 @@ def main():
             min_date = df[start_col].min()
             max_date = df[end_col].max()
 
-            start_date = st.slider(
-                "Startdatum",
+            # Startdatum und Enddatum als Schieberegler
+            start_date, end_date = st.slider(
+                "Wähle den Zeitraum",
                 min_value=min_date,
                 max_value=max_date,
                 value=(min_date, max_date),
@@ -53,7 +54,7 @@ def main():
             )
 
             # Filtere die Daten nach dem gewählten Zeitraum
-            filtered_df = df[(df[start_col] >= start_date[0]) & (df[end_col] <= start_date[1])]
+            filtered_df = df[(df[start_col] >= start_date) & (df[end_col] <= end_date)]
 
             # Möglichkeit zur Filterung/Anzeige bestimmter Spalten
             st.write("Spaltenauswahl:")
