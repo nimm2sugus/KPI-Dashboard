@@ -36,6 +36,11 @@ st.title("Excel-Datenanzeige")
 # Dateiupload-Funktion
 uploaded_file = st.file_uploader("Lade eine Excel-Datei hoch", type=["xlsx", "xls"])
 
+# Initialisiere DataFrame
+df = None
+filtered_df = None
+final_df = None
+
 if uploaded_file is not None:
     # Excel-Datei laden
     with st.spinner('Lade die Datei...'):
@@ -63,29 +68,32 @@ if uploaded_file is not None:
         filtered_df = df[columns] if columns else df
         st.write(filtered_df)
 
-        # Status zum Bestätigen der gefilterten Daten
+        # Schaltfläche zum Bestätigen der gefilterten Daten
         confirm_data_button = st.button("Bestätige die Auswahl der gefilterten Daten")
 
-        # Status zur Bestätigung der Standorte
-        confirm_location_button = st.button("Bestätige Standortauswahl")
-
+        # Verarbeite die Daten, wenn bestätigt
         if confirm_data_button:
             st.success("Gefilterte Daten wurden bestätigt.")
 
+            # Erstelle neues DataFrame nach der Bestätigung der gefilterten Daten
+            final_df = filtered_df.copy()
+
             # Dropdown-Liste zur Auswahl der Standorte
-            if 'Standortname' in filtered_df.columns:
+            if 'Standortname' in final_df.columns:
                 selected_standorte = st.multiselect(
                     "Wähle einen oder mehrere Standorte",
-                    filtered_df['Standortname'].unique().tolist(),
-                    default=filtered_df['Standortname'].unique().tolist()
+                    final_df['Standortname'].unique().tolist(),
+                    default=final_df['Standortname'].unique().tolist()
                 )
 
-                # Bestätigung der Standortauswahl und Ausgabe
+                # Schaltfläche zum Bestätigen der Standortauswahl
+                confirm_location_button = st.button("Bestätige Standortauswahl")
+
                 if confirm_location_button:
                     st.success(f"Ausgewählte Standorte: {', '.join(selected_standorte)}")
 
-                    # Filtere den DataFrame nach den ausgewählten Standorten
-                    final_df = filtered_df[filtered_df['Standortname'].isin(selected_standorte)]
+                    # Erstelle ein neues DataFrame basierend auf den ausgewählten Standorten
+                    final_df = final_df[final_df['Standortname'].isin(selected_standorte)]
                     st.write("Gefilterte Daten für die ausgewählten Standorte:")
                     st.write(final_df)
 
