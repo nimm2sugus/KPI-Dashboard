@@ -46,7 +46,7 @@ if uploaded_file is not None:
 
         st.write(df)
 
-        if 'Verbrauch (kWh)' in df.columns and 'Kosten' in df.columns:
+        if 'Verbrauch (kWh)' in df.columns and 'Kosten (EUR)' in df.columns:
             # Aggregation pro Stunde
             st.subheader("Aggregierter Verbrauch pro Stunde")
             df_stunde = df.groupby([df['Beendet'].dt.floor('H')])['Verbrauch (kWh)'].sum().reset_index()
@@ -74,11 +74,12 @@ if uploaded_file is not None:
             st.warning("Spalten 'Verbrauch (kWh)' und/oder 'Kosten (EUR)' nicht gefunden.")
 
         # ✅ Allgemeine KPIs nach Standort (Summen der Verbrauch und Kosten)
-        if 'Standortname' in df.columns:
-            grouped = df.groupby('Standortname', as_index=False).agg({
+        if 'Standortname' in df.columns and 'Verbrauch (kWh)' in df.columns and 'Kosten (EUR)' in df.columns:
+            # Gruppierung nach Standortname mit Summen für Verbrauch (kWh) und Kosten (EUR)
+            grouped = df.groupby('Standortname').agg({
                 'Verbrauch (kWh)': 'sum',
                 'Kosten (EUR)': 'sum'
-            })
+            }).reset_index()
 
             # KPIs anzeigen
             st.subheader("🔢 Allgemeine KPIs nach Standort")
@@ -98,4 +99,4 @@ if uploaded_file is not None:
                 st.plotly_chart(fig2, use_container_width=True)
 
         else:
-            st.warning("Spalte 'Standortname' nicht gefunden.")
+            st.warning("Spalte 'Standortname' oder eine der aggregierten Spalten ('Verbrauch (kWh)', 'Kosten (EUR)') fehlt.")
