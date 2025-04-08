@@ -68,3 +68,8 @@ if uploaded_file is not None:
 
         else:
             st.warning("Spalte 'Verbrauch (kWh)' nicht gefunden.")
+
+        st.subheader("Darstellungen")
+        
+        fig_line = px.line(df, "Beendet", "Verbrauch (kWh)", title="Verbrauch [kWh]", markers=True)
+        st.plotly_chart(fig_line, use_container_width=True)
