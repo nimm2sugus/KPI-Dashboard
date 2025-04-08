@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 
+
 # Funktion zum Laden der Excel-Datei
 @st.cache_data
 def load_excel_file(uploaded_file):
@@ -12,11 +13,18 @@ def load_excel_file(uploaded_file):
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
+
 # Funktion zum Konvertieren der Zeitspalten in datetime
 def convert_to_datetime(df, start_col, end_col):
-    df[start_col] = pd.to_datetime(df[start_col], format='%d.%m.%Y %H:%M')
-    df[end_col] = pd.to_datetime(df[end_col], format='%d.%m.%Y %H:%M')
+    try:
+        df[start_col] = pd.to_datetime(df[start_col], format='%d.%m.%Y %H:%M', errors='coerce')
+        df[end_col] = pd.to_datetime(df[end_col], format='%d.%m.%Y %H:%M', errors='coerce')
+    except KeyError as e:
+        st.error(f"Spalte '{e}' nicht gefunden!")
+    except Exception as e:
+        st.error(f"Fehler bei der Konvertierung der Zeitspalten: {e}")
     return df
+
 
 # Streamlit-Oberfläche
 # Setze die Seitenkonfiguration, um die volle Breite zu nutzen
@@ -30,36 +38,27 @@ uploaded_file = st.file_uploader("Lade eine Excel-Datei hoch", type=["xlsx", "xl
 
 if uploaded_file is not None:
     # Excel-Datei laden
-    df = load_excel_file(uploaded_file)
+    with st.spinner('Lade die Datei...'):
+        df = load_excel_file(uploaded_file)
 
     if df is not None:
-        # Konvertiere "Gestartet" und "Beendet" Spalten in Datetime
+        # Zeige die ersten Zeilen der geladenen Daten
+        st.write("Erste Zeilen der Datei:")
+        st.write(df.head())
+
+        # Konvertiere "Gestartet" und "Beendet" Spalten in Datetime, falls sie vorhanden sind
         start_col = 'Gestartet'  # Spaltenname für Startzeit
         end_col = 'Beendet'  # Spaltenname für Endzeit
-        df = convert_to_datetime(df, start_col, end_col)
 
-        # Zeitraumfilter (Schieberegler für Start- und Endzeit)
-        st.write("Zeitraum auswählen:")
-
-        # Wir definieren den Zeitraum aus den Daten
-        min_date = df[start_col].min()
-        max_date = df[end_col].max()
-
-        # Der Slider ermöglicht es, den Zeitraum zu wählen, ohne explizit min/max zu setzen
-        selected_period = st.slider(
-            "Wähle den Zeitraum",
-            min_value=min_date,
-            max_value=max_date,
-            value=(min_date, max_date),  # Standardwert ist der gesamte Zeitraum
-            format="DD.MM.YYYY"
-        )
-
-        # Filtere die Daten basierend auf dem gewählten Zeitraum
-        filtered_df = df[
-            (df[start_col] >= selected_period[0]) & (df[end_col] <= selected_period[1])
-        ]
+        if start_col in df.columns and end_col in df.columns:
+            df = convert_to_datetime(df, start_col, end_col)
+        else:
+            st.warning(f"Die Spalten '{start_col}' oder '{end_col}' wurden nicht gefunden!")
 
         # Möglichkeit zur Filterung/Anzeige bestimmter Spalten
         st.write("Spaltenauswahl:")
         columns = st.multiselect("Wähle Spalten zur Anzeige", df.columns.tolist(), default=df.columns.tolist())
-        st.write(filtered_df[columns])
+
+        # Zeige den gefilterten DataFrame
+        if columns:
+            st.write(df[columns])
