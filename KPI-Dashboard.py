@@ -42,40 +42,10 @@ def main():
             end_col = 'Beendet'  # Spaltenname für Endzeit
             df = convert_to_datetime(df, start_col, end_col)
 
-            # Anzeige der ersten Zeilen der Daten
-            st.write("Datenvorschau:", df.head())
-
             # Möglichkeit zur Filterung/Anzeige bestimmter Spalten
             st.write("Spaltenauswahl:")
             columns = st.multiselect("Wähle Spalten zur Anzeige", df.columns.tolist(), default=df.columns.tolist())
             st.write(df[columns])
-
-            # Schieberegler für den Zeitraum
-            min_time = df[start_col].min()
-            max_time = df[end_col].max()
-
-            # Zeitraum-Auswahl mit Schieberegler
-            selected_time_range = st.slider(
-                "Wähle Zeitraum",
-                min_value=min_time,
-                max_value=max_time,
-                value=(min_time, max_time),
-                format="DD.MM.YYYY HH:mm"
-            )
-
-            # Filtere Daten basierend auf dem gewählten Zeitraum
-            filtered_df = df[
-                (df[start_col] >= selected_time_range[0]) &
-                (df[end_col] <= selected_time_range[1])
-                ]
-
-            # Anzeige der gefilterten Daten
-            st.write("Gefilterte Daten:", filtered_df)
-
-            # Option, die vollständige Tabelle anzuzeigen
-            if st.checkbox("Vollständige Tabelle anzeigen"):
-                st.write(df)
-
 
 if __name__ == "__main__":
     main()
