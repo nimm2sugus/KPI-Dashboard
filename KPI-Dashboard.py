@@ -67,7 +67,7 @@ if uploaded_file is not None:
             # Dropdown-Liste zur Auswahl der Standorte
             if 'Standortname' in filtered_df.columns:
                 selected_standorte = st.multiselect(
-                    "Wähle einen oder mehrere Standorte",
+                    "Wähle einen oder mehrere Standorte", 
                     filtered_df['Standortname'].unique().tolist(),
                     default=filtered_df['Standortname'].unique().tolist()
                 )
@@ -80,5 +80,26 @@ if uploaded_file is not None:
                     final_df = filtered_df[filtered_df['Standortname'].isin(selected_standorte)]
                     st.write("Gefilterte Daten für die ausgewählten Standorte:")
                     st.write(final_df)
+
+                    # Einfachste Möglichkeit zur Darstellung von Diagrammen
+                    st.write("Daten für Diagramme vorbereiten")
+
+                    # Beispiel: Line Chart, Bar Chart und Area Chart
+                    st.subheader("Visualisierung der Daten")
+
+                    # Wähle die Spalten für die X- und Y-Achse aus
+                    x_axis = st.selectbox("Wähle eine Spalte für die X-Achse", final_df.columns.tolist(), index=0)
+                    y_axis = st.selectbox("Wähle eine Spalte für die Y-Achse", final_df.columns.tolist(), index=1)
+
+                    # Anzeige des Diagramms basierend auf der Auswahl
+                    chart_type = st.selectbox("Wähle den Diagrammtyp", ["Liniendiagramm", "Balkendiagramm", "Flächendiagramm"])
+
+                    if chart_type == "Liniendiagramm":
+                        st.line_chart(final_df.set_index(x_axis)[y_axis])
+                    elif chart_type == "Balkendiagramm":
+                        st.bar_chart(final_df.set_index(x_axis)[y_axis])
+                    elif chart_type == "Flächendiagramm":
+                        st.area_chart(final_df.set_index(x_axis)[y_axis])
+
             else:
                 st.warning("Die Spalte 'Standortname' wurde in den Daten nicht gefunden.")
