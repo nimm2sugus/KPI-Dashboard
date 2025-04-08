@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 # Funktion zum Laden der Excel-Datei
 @st.cache_data
@@ -25,11 +26,45 @@ if uploaded_file is not None:
     df = load_excel_file(uploaded_file)
 
     if df is not None:
-        # Zeige die Daten in einer Tabelle
         st.subheader("Datenübersicht")
         st.write(df)
 
-        # Darstellung der Ladeenergie als Liniendiagramm
+        # Zeitspalte "Beendet" als Zeitindex verwenden
+        if 'Beendet' in df.columns:
+            try:
+                df['Beendet'] = pd.to_datetime(df['Beendet'])
+                df = df.sort_values('Beendet')  # chronologisch ordnen
+                df.set_index('Beendet', inplace=True)
+            except Exception as e:
+                st.error(f"Fehler beim Verarbeiten der Beendet-Spalte: {e}")
+        else:
+            st.warning("Spalte 'Beendet' nicht gefunden – Zeitreihen nicht möglich.")
+
+        # Liniendiagramm: Verbrauch
         if 'Verbrauch (kWh)' in df.columns:
-            st.subheader("Verbrauch der Ladevorgänge (Ladeenergie)")
+            st.subheader("Verbrauch der Ladevorgänge (Ladeenergie in kWh)")
             st.line_chart(df['Verbrauch (kWh)'])
+
+        # Liniendiagramm: Kosten
+        if 'Kosten' in df.columns:
+            st.subheader("Kosten für den User aller Ladevorgänge (Euro €)")
+            st.line_chart(df['Kosten'])
+
+            # Aggregation pro Tag
+            st.subheader("Tägliche Gesamtkosten")
+            try:
+                daily_costs = df['Kosten'].resample('D').sum()
+                st.bar_chart(daily_costs)
+            except Exception as e:
+                st.warning(f"Fehler bei Tagesaggregation: {e}")
+
+            # Aggregation pro Monat
+            st.subheader("Monatliche Gesamtkosten")
+            try:
+                monthly_costs = df['Kosten'].resample('M').sum()
+                st.bar_chart(monthly_costs)
+            except Exception as e:
+                st.warning(f"Fehler bei Monatsaggregation: {e}")
+
+        else:
+            st.warning("Spalte 'Kosten' nicht gefunden.")
