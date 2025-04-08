@@ -46,7 +46,7 @@ if uploaded_file is not None:
 
         st.write(df)
 
-        if 'Verbrauch (kWh)' in df.columns and 'Kosten (EUR)' in df.columns:
+        if 'Verbrauch (kWh)' in df.columns and 'Kosten' in df.columns:
             # Aggregation pro Stunde
             st.subheader("Aggregierter Verbrauch pro Stunde")
             df_stunde = df.groupby([df['Beendet'].dt.floor('H')])['Verbrauch (kWh)'].sum().reset_index()
