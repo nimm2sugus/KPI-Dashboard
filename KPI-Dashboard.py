@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 
-
 # Funktion zum Laden der Excel-Datei
 @st.cache_data
 def load_excel_file(uploaded_file):
@@ -13,7 +12,6 @@ def load_excel_file(uploaded_file):
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
-
 # Funktion zum Konvertieren der Zeitspalten in datetime
 def convert_to_datetime(df, start_col, end_col):
     try:
@@ -24,7 +22,6 @@ def convert_to_datetime(df, start_col, end_col):
     except Exception as e:
         st.error(f"Fehler bei der Konvertierung der Zeitspalten: {e}")
     return df
-
 
 # Streamlit-Oberfläche
 # Setze die Seitenkonfiguration, um die volle Breite zu nutzen
@@ -60,7 +57,7 @@ if uploaded_file is not None:
         else:
             st.warning(f"Die Spalten '{start_col}' oder '{end_col}' wurden nicht gefunden!")
 
-        # Möglichkeit zur Filterung/Anzeige bestimmter Spalten
+        # **Schritt 1: Filterung der Spalten**
         st.write("Spaltenauswahl:")
         columns = st.multiselect("Wähle Spalten zur Anzeige", df.columns.tolist(), default=df.columns.tolist())
 
@@ -71,12 +68,11 @@ if uploaded_file is not None:
         # Schaltfläche zum Bestätigen der gefilterten Daten
         confirm_data_button = st.button("Bestätige die Auswahl der gefilterten Daten")
 
-        # Verarbeite die Daten, wenn bestätigt
+        # **Schritt 2: Filterung nach Standorten**
         if confirm_data_button:
-            st.success("Gefilterte Daten wurden bestätigt.")
-
-            # Erstelle neues DataFrame nach der Bestätigung der gefilterten Daten
+            # Erstelle ein neues DataFrame basierend auf den gefilterten Daten
             final_df = filtered_df.copy()
+            st.success("Gefilterte Daten wurden bestätigt.")
 
             # Dropdown-Liste zur Auswahl der Standorte
             if 'Standortname' in final_df.columns:
@@ -92,31 +88,10 @@ if uploaded_file is not None:
                 if confirm_location_button:
                     st.success(f"Ausgewählte Standorte: {', '.join(selected_standorte)}")
 
-                    # Erstelle ein neues DataFrame basierend auf den ausgewählten Standorten
+                    # **Schritt 3: Filterung nach Standorten**
                     final_df = final_df[final_df['Standortname'].isin(selected_standorte)]
                     st.write("Gefilterte Daten für die ausgewählten Standorte:")
                     st.write(final_df)
-
-                    # Einfachste Möglichkeit zur Darstellung von Diagrammen
-                    st.write("Daten für Diagramme vorbereiten")
-
-                    # Beispiel: Line Chart, Bar Chart und Area Chart
-                    st.subheader("Visualisierung der Daten")
-
-                    # Wähle die Spalten für die X- und Y-Achse aus
-                    x_axis = st.selectbox("Wähle eine Spalte für die X-Achse", final_df.columns.tolist(), index=0)
-                    y_axis = st.selectbox("Wähle eine Spalte für die Y-Achse", final_df.columns.tolist(), index=1)
-
-                    # Anzeige des Diagramms basierend auf der Auswahl
-                    chart_type = st.selectbox("Wähle den Diagrammtyp",
-                                              ["Liniendiagramm", "Balkendiagramm", "Flächendiagramm"])
-
-                    if chart_type == "Liniendiagramm":
-                        st.line_chart(final_df.set_index(x_axis)[y_axis])
-                    elif chart_type == "Balkendiagramm":
-                        st.bar_chart(final_df.set_index(x_axis)[y_axis])
-                    elif chart_type == "Flächendiagramm":
-                        st.area_chart(final_df.set_index(x_axis)[y_axis])
 
             else:
                 st.warning("Die Spalte 'Standortname' wurde in den Daten nicht gefunden.")
