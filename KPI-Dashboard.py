@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import altair as alt
-
+import plotly.express as px
 
 # Funktion zum Laden der Excel-Datei
 @st.cache_data
@@ -72,7 +71,7 @@ if uploaded_file is not None:
 
 
         # ✅ Allgemeine KPIs nach Standort (Summen der Verbrauch und Kosten)
-        grouped = df_filtered.groupby('Standortname', as_index=False).agg({
+        grouped = df.groupby('Standortname', as_index=False).agg({
             'Verbrauch_kWh': 'sum',
             'Kosten_EUR': 'sum'
         })
