@@ -29,42 +29,36 @@ if uploaded_file is not None:
         st.subheader("Datenübersicht")
         st.write(df)
 
-        # Zeitspalte "Beendet" als Zeitindex verwenden
+        # Verarbeite die Zeitspalte "Beendet"
         if 'Beendet' in df.columns:
             try:
                 df['Beendet'] = pd.to_datetime(df['Beendet'])
-                df = df.sort_values('Beendet')  # chronologisch ordnen
-                df.set_index('Beendet', inplace=True)
+                df = df.sort_values('Beendet')  # chronologisch sortieren
             except Exception as e:
-                st.error(f"Fehler beim Verarbeiten der Beendet-Spalte: {e}")
+                st.error(f"Fehler beim Verarbeiten der Zeitspalte 'Beendet': {e}")
         else:
-            st.warning("Spalte 'Beendet' nicht gefunden – Zeitreihen nicht möglich.")
+            st.warning("Spalte 'Beendet' nicht gefunden – Zeitaggregation nicht möglich.")
 
-        # Liniendiagramm: Verbrauch
+        # Verbrauch anzeigen
         if 'Verbrauch (kWh)' in df.columns:
             st.subheader("Verbrauch der Ladevorgänge (Ladeenergie in kWh)")
-            st.line_chart(df['Verbrauch (kWh)'])
+            st.line_chart(df.set_index('Beendet')['Verbrauch (kWh)'])
 
-        # Liniendiagramm: Kosten
+        # Kosten anzeigen
         if 'Kosten' in df.columns:
             st.subheader("Kosten für den User aller Ladevorgänge (Euro €)")
-            st.line_chart(df['Kosten'])
+            st.line_chart(df.set_index('Beendet')['Kosten'])
 
-            # Aggregation pro Tag
+            # Tägliche Gesamtkosten mit groupby
             st.subheader("Tägliche Gesamtkosten")
-            try:
-                daily_costs = df['Kosten'].resample('D').sum()
-                st.bar_chart(daily_costs)
-            except Exception as e:
-                st.warning(f"Fehler bei Tagesaggregation: {e}")
+            df['Beendet_Datum'] = df['Beendet'].dt.date  # nur das Datum extrahieren
+            daily_costs = df.groupby('Beendet_Datum')['Kosten'].sum()
+            st.bar_chart(daily_costs)
 
-            # Aggregation pro Monat
+            # Monatliche Gesamtkosten mit groupby
             st.subheader("Monatliche Gesamtkosten")
-            try:
-                monthly_costs = df['Kosten'].resample('M').sum()
-                st.bar_chart(monthly_costs)
-            except Exception as e:
-                st.warning(f"Fehler bei Monatsaggregation: {e}")
-
+            df['Beendet_Monat'] = df['Beendet'].dt.to_period('M').astype(str)
+            monthly_costs = df.groupby('Beendet_Monat')['Kosten'].sum()
+            st.bar_chart(monthly_costs)
         else:
             st.warning("Spalte 'Kosten' nicht gefunden.")
