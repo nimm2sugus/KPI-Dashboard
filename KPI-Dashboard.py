@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 
+
 # Funktion zum Laden der Excel-Datei
 @st.cache_data
 def load_excel_file(uploaded_file):
@@ -12,6 +13,7 @@ def load_excel_file(uploaded_file):
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
+
 # Funktion zum Konvertieren der Zeitspalten in datetime
 def convert_to_datetime(df, start_col, end_col):
     try:
@@ -22,6 +24,7 @@ def convert_to_datetime(df, start_col, end_col):
     except Exception as e:
         st.error(f"Fehler bei der Konvertierung der Zeitspalten: {e}")
     return df
+
 
 # Streamlit-Oberfläche
 # Setze die Seitenkonfiguration, um die volle Breite zu nutzen
@@ -60,20 +63,25 @@ if uploaded_file is not None:
         filtered_df = df[columns] if columns else df
         st.write(filtered_df)
 
-        # Schaltfläche zum Bestätigen der gefilterten DataFrame-Daten
-        if st.button("Bestätige die Auswahl der gefilterten Daten"):
+        # Status zum Bestätigen der gefilterten Daten
+        confirm_data_button = st.button("Bestätige die Auswahl der gefilterten Daten")
+
+        # Status zur Bestätigung der Standorte
+        confirm_location_button = st.button("Bestätige Standortauswahl")
+
+        if confirm_data_button:
             st.success("Gefilterte Daten wurden bestätigt.")
 
             # Dropdown-Liste zur Auswahl der Standorte
             if 'Standortname' in filtered_df.columns:
                 selected_standorte = st.multiselect(
-                    "Wähle einen oder mehrere Standorte", 
+                    "Wähle einen oder mehrere Standorte",
                     filtered_df['Standortname'].unique().tolist(),
                     default=filtered_df['Standortname'].unique().tolist()
                 )
 
-                # Schaltfläche zum Bestätigen der Standortauswahl
-                if st.button("Bestätige Standortauswahl"):
+                # Bestätigung der Standortauswahl und Ausgabe
+                if confirm_location_button:
                     st.success(f"Ausgewählte Standorte: {', '.join(selected_standorte)}")
 
                     # Filtere den DataFrame nach den ausgewählten Standorten
@@ -92,7 +100,8 @@ if uploaded_file is not None:
                     y_axis = st.selectbox("Wähle eine Spalte für die Y-Achse", final_df.columns.tolist(), index=1)
 
                     # Anzeige des Diagramms basierend auf der Auswahl
-                    chart_type = st.selectbox("Wähle den Diagrammtyp", ["Liniendiagramm", "Balkendiagramm", "Flächendiagramm"])
+                    chart_type = st.selectbox("Wähle den Diagrammtyp",
+                                              ["Liniendiagramm", "Balkendiagramm", "Flächendiagramm"])
 
                     if chart_type == "Liniendiagramm":
                         st.line_chart(final_df.set_index(x_axis)[y_axis])
