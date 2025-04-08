@@ -72,8 +72,8 @@ if uploaded_file is not None:
 
         # ✅ Allgemeine KPIs nach Standort (Summen der Verbrauch und Kosten)
         grouped = df.groupby('Standortname', as_index=False).agg({
-            'Verbrauch_kWh': 'sum',
-            'Kosten_EUR': 'sum'
+            'Verbrauch (kWh)': 'sum',
+            'Kosten (EUR)': 'sum'
         })
 
         # KPIs anzeigen
@@ -85,10 +85,10 @@ if uploaded_file is not None:
 
         with col1:
             st.subheader("⚡ Verbrauch nach Standort (kWh)")
-            fig1 = px.bar(grouped, x="Standortname", y="Verbrauch_kWh", title="Gesamtverbrauch", color="Standortname")
+            fig1 = px.bar(grouped, x="Standortname", y="Verbrauch (kWh)", title="Gesamtverbrauch", color="Standortname")
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
             st.subheader("💶 Kosten Ladevorgang nach Standort (€)")
-            fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR", title="Gesamtkosten", color="Standortname")
+            fig2 = px.bar(grouped, x="Standortname", y="Kosten (EUR)", title="Gesamtkosten", color="Standortname")
             st.plotly_chart(fig2, use_container_width=True)
