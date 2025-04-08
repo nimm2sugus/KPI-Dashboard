@@ -27,10 +27,6 @@ if uploaded_file is not None:
         st.subheader("Originaldaten")
         st.write(df)
 
-        # Spaltennamen überprüfen
-        st.subheader("Spaltennamen der geladenen Datei")
-        st.write(df.columns)
-
         # Sicherstellen, dass 'Beendet' eine Datetime-Spalte ist
         if 'Beendet' in df.columns:
             try:
@@ -46,7 +42,7 @@ if uploaded_file is not None:
 
         st.write(df)
 
-        if 'Verbrauch (kWh)' in df.columns and 'Kosten (EUR)' in df.columns:
+        if 'Verbrauch (kWh)' in df.columns:
             # Aggregation pro Stunde
             st.subheader("Aggregierter Verbrauch pro Stunde")
             df_stunde = df.groupby([df['Beendet'].dt.floor('H')])['Verbrauch (kWh)'].sum().reset_index()
@@ -71,32 +67,4 @@ if uploaded_file is not None:
             st.bar_chart(df_jahr.set_index('Jahr'))
 
         else:
-            st.warning("Spalten 'Verbrauch (kWh)' und/oder 'Kosten (EUR)' nicht gefunden.")
-
-        # ✅ Allgemeine KPIs nach Standort (Summen der Verbrauch und Kosten)
-        if 'Standortname' in df.columns and 'Verbrauch (kWh)' in df.columns and 'Kosten (EUR)' in df.columns:
-            # Gruppierung nach Standortname mit Summen für Verbrauch (kWh) und Kosten (EUR)
-            grouped = df.groupby('Standortname').agg({
-                'Verbrauch (kWh)': 'sum',
-                'Kosten (EUR)': 'sum'
-            }).reset_index()
-
-            # KPIs anzeigen
-            st.subheader("🔢 Allgemeine KPIs nach Standort")
-            st.dataframe(grouped, use_container_width=True)
-
-            # Balkendiagramme: Verbrauch & Kosten
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.subheader("⚡ Verbrauch nach Standort (kWh)")
-                fig1 = px.bar(grouped, x="Standortname", y="Verbrauch (kWh)", title="Gesamtverbrauch", color="Standortname")
-                st.plotly_chart(fig1, use_container_width=True)
-
-            with col2:
-                st.subheader("💶 Kosten Ladevorgang nach Standort (€)")
-                fig2 = px.bar(grouped, x="Standortname", y="Kosten (EUR)", title="Gesamtkosten", color="Standortname")
-                st.plotly_chart(fig2, use_container_width=True)
-
-        else:
-            st.warning("Spalte 'Standortname' oder eine der aggregierten Spalten ('Verbrauch (kWh)', 'Kosten (EUR)') fehlt.")
+            st.warning("Spalte 'Verbrauch (kWh)' nicht gefunden.")
