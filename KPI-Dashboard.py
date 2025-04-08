@@ -65,11 +65,11 @@ if uploaded_file is not None:
             st.success("Gefilterte Daten wurden bestätigt.")
 
             # Dropdown-Liste zur Auswahl der Standorte
-            if 'Standort' in filtered_df.columns:
+            if 'Standortname' in filtered_df.columns:
                 selected_standorte = st.multiselect(
                     "Wähle einen oder mehrere Standorte",
-                    filtered_df['Standort'].unique().tolist(),
-                    default=filtered_df['Standort'].unique().tolist()
+                    filtered_df['Standortname'].unique().tolist(),
+                    default=filtered_df['Standortname'].unique().tolist()
                 )
 
                 # Schaltfläche zum Bestätigen der Standortauswahl
@@ -77,8 +77,8 @@ if uploaded_file is not None:
                     st.success(f"Ausgewählte Standorte: {', '.join(selected_standorte)}")
 
                     # Filtere den DataFrame nach den ausgewählten Standorten
-                    final_df = filtered_df[filtered_df['Standort'].isin(selected_standorte)]
+                    final_df = filtered_df[filtered_df['Standortname'].isin(selected_standorte)]
                     st.write("Gefilterte Daten für die ausgewählten Standorte:")
                     st.write(final_df)
             else:
-                st.warning("Die Spalte 'Standort' wurde in den Daten nicht gefunden.")
+                st.warning("Die Spalte 'Standortname' wurde in den Daten nicht gefunden.")
