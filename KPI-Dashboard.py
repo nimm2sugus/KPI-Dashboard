@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import altair as alt
 
 
 # Funktion zum Laden der Excel-Datei
@@ -24,43 +25,45 @@ if uploaded_file is not None:
     df = load_excel_file(uploaded_file)
 
     if df is not None:
-        st.subheader("Datenübersicht")
+        st.subheader("Originaldaten")
         st.write(df)
 
-        # Prüfen, ob "Beendet" vorhanden ist
+        # Sicherstellen, dass 'Beendet' eine Datetime-Spalte ist
         if 'Beendet' in df.columns:
             try:
                 df['Beendet'] = pd.to_datetime(df['Beendet'])
-
-                # Neue Zeit-Spalten extrahieren
-                df['Tag'] = df['Beendet'].dt.date
-                df['Monat'] = df['Beendet'].dt.to_period('M').astype(str)
                 df['Jahr'] = df['Beendet'].dt.year
+                df['Monat'] = df['Beendet'].dt.month
+                df['Tag'] = df['Beendet'].dt.day
+                df['Stunde'] = df['Beendet'].dt.hour
             except Exception as e:
-                st.error(f"Fehler beim Verarbeiten von 'Beendet': {e}")
+                st.error(f"Fehler bei der Zeitumwandlung: {e}")
         else:
             st.warning("Spalte 'Beendet' nicht gefunden.")
 
-        # Verbrauch anzeigen
         if 'Verbrauch (kWh)' in df.columns:
-            st.subheader("Verbrauch der Ladevorgänge (kWh)")
-            st.line_chart(df.set_index('Beendet')['Verbrauch (kWh)'])
+            # Aggregation pro Stunde
+            st.subheader("Aggregierter Verbrauch pro Stunde")
+            df_stunde = df.groupby([df['Beendet'].dt.floor('H')])['Verbrauch (kWh)'].sum().reset_index()
+            st.line_chart(df_stunde.set_index('Beendet'))
 
-        # Kosten anzeigen + Aggregationen
-        if 'Kosten' in df.columns:
-            st.subheader("Kosten pro Ladevorgang (Einzeldaten)")
-            st.line_chart(df.set_index('Beendet')['Kosten'])
+            # Aggregation pro Tag
+            st.subheader("Aggregierter Verbrauch pro Tag")
+            df_tag = df.groupby([df['Beendet'].dt.date])['Verbrauch (kWh)'].sum().reset_index()
+            df_tag['Beendet'] = pd.to_datetime(df_tag['Beendet'])  # wieder in datetime umwandeln
+            st.line_chart(df_tag.set_index('Beendet'))
 
-            st.subheader("Tägliche Gesamtkosten")
-            daily_costs = df.groupby('Tag')['Kosten'].sum()
-            st.bar_chart(daily_costs)
+            # Aggregation pro Monat
+            st.subheader("Aggregierter Verbrauch pro Monat")
+            df_monat = df.groupby([df['Beendet'].dt.to_period('M')])['Verbrauch (kWh)'].sum().reset_index()
+            df_monat['Beendet'] = df_monat['Beendet'].dt.to_timestamp()
+            st.line_chart(df_monat.set_index('Beendet'))
 
-            st.subheader("Monatliche Gesamtkosten")
-            monthly_costs = df.groupby('Monat')['Kosten'].sum()
-            st.bar_chart(monthly_costs)
+            # Aggregation pro Jahr
+            st.subheader("Aggregierter Verbrauch pro Jahr")
+            df_jahr = df.groupby([df['Beendet'].dt.year])['Verbrauch (kWh)'].sum().reset_index()
+            df_jahr.rename(columns={'Beendet': 'Jahr'}, inplace=True)
+            st.bar_chart(df_jahr.set_index('Jahr'))
 
-            st.subheader("Jährliche Gesamtkosten")
-            yearly_costs = df.groupby('Jahr')['Kosten'].sum()
-            st.bar_chart(yearly_costs)
         else:
-            st.warning("Spalte 'Kosten' nicht gefunden.")
+            st.warning("Spalte 'Verbrauch (kWh)' nicht gefunden.")
