@@ -41,6 +41,8 @@ if uploaded_file is not None:
         else:
             st.warning("Spalte 'Beendet' nicht gefunden.")
 
+        st.write(df)
+
         if 'Verbrauch (kWh)' in df.columns:
             # Aggregation pro Stunde
             st.subheader("Aggregierter Verbrauch pro Stunde")
@@ -67,3 +69,27 @@ if uploaded_file is not None:
 
         else:
             st.warning("Spalte 'Verbrauch (kWh)' nicht gefunden.")
+
+
+        # ✅ Allgemeine KPIs nach Standort (Summen der Verbrauch und Kosten)
+        grouped = df_filtered.groupby('Standortname', as_index=False).agg({
+            'Verbrauch_kWh': 'sum',
+            'Kosten_EUR': 'sum'
+        })
+
+        # KPIs anzeigen
+        st.subheader("🔢 Allgemeine KPIs nach Standort")
+        st.dataframe(grouped, use_container_width=True)
+
+        # Balkendiagramme: Verbrauch & Kosten
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("⚡ Verbrauch nach Standort (kWh)")
+            fig1 = px.bar(grouped, x="Standortname", y="Verbrauch_kWh", title="Gesamtverbrauch", color="Standortname")
+            st.plotly_chart(fig1, use_container_width=True)
+
+        with col2:
+            st.subheader("💶 Kosten Ladevorgang nach Standort (€)")
+            fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR", title="Gesamtkosten", color="Standortname")
+            st.plotly_chart(fig2, use_container_width=True)
