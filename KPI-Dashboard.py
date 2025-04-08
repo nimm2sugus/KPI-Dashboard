@@ -14,6 +14,9 @@ def load_excel_file(uploaded_file):
 
 # Streamlit-Oberfläche
 def main():
+    # Setze die Seitenkonfiguration, um die volle Breite zu nutzen
+    st.set_page_config(page_title="Excel-Datenanzeige", layout="wide")
+
     # Titel der App
     st.title("Excel-Datenanzeige")
 
