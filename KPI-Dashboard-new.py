@@ -24,7 +24,8 @@ def load_and_prepare_excel(file):
     df.columns = df.columns.str.strip()  # Spaltennamen bereinigen
 
     expected_cols = ['Standortname', 'Verbrauch', 'Kosten', 'Standzeit']
-    missing_cols = [col for col in expected_cols if col not in df.columns]
+    # Suchen nach den erwarteten Stichwörtern in den Spaltenüberschriften
+    missing_cols = [col for col in expected_cols if not any(col.lower() in header.lower() for header in df.columns)]
 
     if missing_cols:
         return None, missing_cols
@@ -37,7 +38,7 @@ def load_and_prepare_excel(file):
     df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
     # Verbrauch pro Minute berechnen (KPI)
     df["Verbrauch pro Minute"] = df.apply(
-        lambda row: row["Verbrauch"] / row["Standzeit_min"] if row["Standzeit_min"] and row[ "Standzeit_min"] > 0 else None,
+        lambda row: row["Verbrauch"] / row["Standzeit_min"] if row["Standzeit_min"] and row["Standzeit_min"] > 0 else None,
         axis=1)
 
     return df, missing_cols
