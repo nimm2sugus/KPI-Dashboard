@@ -40,23 +40,26 @@ if uploaded_file is not None:
 
         # Zeitraumfilter (Schieberegler für Start- und Endzeit)
         st.write("Zeitraum auswählen:")
+
+        # Wir definieren den Zeitraum aus den Daten
         min_date = df[start_col].min()
         max_date = df[end_col].max()
 
-        # Startdatum und Enddatum als Schieberegler
-        start_date, end_date = st.slider(
+        # Der Slider ermöglicht es, den Zeitraum zu wählen, ohne explizit min/max zu setzen
+        selected_period = st.slider(
             "Wähle den Zeitraum",
             min_value=min_date,
             max_value=max_date,
-            value=(min_date, max_date),
+            value=(min_date, max_date),  # Standardwert ist der gesamte Zeitraum
             format="DD.MM.YYYY"
         )
 
-        # Filtere die Daten nach dem gewählten Zeitraum
-        filtered_df = df[(df[start_col] >= start_date) & (df[end_col] <= end_date)]
+        # Filtere die Daten basierend auf dem gewählten Zeitraum
+        filtered_df = df[
+            (df[start_col] >= selected_period[0]) & (df[end_col] <= selected_period[1])
+        ]
 
         # Möglichkeit zur Filterung/Anzeige bestimmter Spalten
         st.write("Spaltenauswahl:")
         columns = st.multiselect("Wähle Spalten zur Anzeige", df.columns.tolist(), default=df.columns.tolist())
         st.write(filtered_df[columns])
-        
