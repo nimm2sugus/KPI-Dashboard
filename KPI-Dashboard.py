@@ -137,7 +137,6 @@ if uploaded_file is not None:
             fig3 = px.bar(grouped, x="Standortname", y="P_Schnitt", title="Gesamtkosten", color="Standortname")
             st.plotly_chart(fig3, use_container_width=True)
 
-
         # Detaillierte Auswertung pro Standort
         st.subheader("📊 Detaillierte Auswertung pro Standort")
 
@@ -146,7 +145,7 @@ if uploaded_file is not None:
             df_standort = df[df['Standortname'] == standort]
 
             # Energieverbrauch pro Tag für jeden Standort
-            avg_verbrauch_tag = df_standort['Verbrauch_kWh'].mean().reset_index()
+            avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh'].mean().reset_index()
             fig_avg_tag = px.bar(
                 avg_verbrauch_tag,
                 x='Tag',
