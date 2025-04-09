@@ -36,8 +36,8 @@ if uploaded_file is not None:
         # Ladezeit berechnen (in Stunden)
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
 
-        # Energiemenge pro Ladevorgang berechnen
-        df['kWh_pro_LV'] = (df['Verbrauch_kWh'] / df['Ladezeit_h'])
+        # Durchschnittsleistung berechnen
+        df['P_Schnitt'] = (df['Verbrauch_kWh'] / df['Ladezeit_h'])
 
         # Zeitdimensionen extrahieren
         df['Jahr'] = df['Beendet'].dt.year
@@ -75,11 +75,37 @@ if uploaded_file is not None:
         fig_line = px.line(df, x="Beendet", y="Verbrauch_kWh", title="Verbrauch [kWh]", markers=True)
         st.plotly_chart(fig_line, use_container_width=True)
 
+        # Balkendiagramm mit Plotly
+        avg_verbrauch_tag = df.groupby('Tag')['Verbrauch_kWh'].mean().reset_index()
+        fig_avg_tag = px.bar(
+            avg_verbrauch_tag,
+            x='Monat',
+            y='Verbrauch_kWh',
+            title='📊 Durchschnittlicher Verbrauch pro Tag',
+            labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
+            color='Verbrauch_kWh',
+            color_continuous_scale='Viridis'
+        )
+
+        # Balkendiagramm mit Plotly
+        avg_verbrauch_monat = df.groupby('Monat')['Verbrauch_kWh'].mean().reset_index()
+        fig_avg_monat = px.bar(
+            avg_verbrauch_monat,
+            x='Monat',
+            y='Verbrauch_kWh',
+            title='📊 Durchschnittlicher Verbrauch pro Monat',
+            labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Monat': 'Monat'},
+            color='Verbrauch_kWh',
+            color_continuous_scale='Viridis'
+        )
+
+        st.plotly_chart(fig_avg_monat, use_container_width=True)
+
         # KPIs nach Standort
         grouped = df.groupby('Standortname', as_index=False).agg({
             'Verbrauch_kWh': 'sum',
             'Kosten_EUR': 'sum',
-            'kWh_pro_LV': 'mean'
+            'P_Schnitt': 'mean'
         })
 
         st.subheader("🔢 Allgemeine KPIs nach Standort")
@@ -99,8 +125,8 @@ if uploaded_file is not None:
             st.plotly_chart(fig2, use_container_width=True)
 
         with col3:
-            st.subheader("Durchschnittlicher Energiemenge pro Ladevorgang")
-            fig3 = px.bar(grouped, x="Standortname", y="'kWh_pro_LV'", title="Gesamtkosten", color="Standortname")
+            st.subheader("Durchschnittlicher Leistung pro Ladevorgang")
+            fig3 = px.bar(grouped, x="Standortname", y="P_Schnitt", title="Gesamtkosten", color="Standortname")
             st.plotly_chart(fig3, use_container_width=True)
 
 
@@ -156,3 +182,5 @@ if uploaded_file is not None:
                     title="Verlauf der Provider im Zeitverlauf"
                 )
                 st.plotly_chart(fig_prov_trend, use_container_width=True)
+
+
