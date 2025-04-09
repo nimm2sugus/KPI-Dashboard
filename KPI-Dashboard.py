@@ -36,6 +36,9 @@ if uploaded_file is not None:
         # Ladezeit berechnen (in Stunden)
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
 
+        # Energiemenge pro Ladevorgang berechnen
+        df['kWh_pro_LV'] = (df['Verbrauch_kWh'] / df['Ladezeit_h'])
+
         # Zeitdimensionen extrahieren
         df['Jahr'] = df['Beendet'].dt.year
         df['Monat'] = df['Beendet'].dt.month
@@ -58,7 +61,7 @@ if uploaded_file is not None:
             st.subheader("Aggregierter Verbrauch pro Monat")
             df_monat = df.groupby(df['Beendet'].dt.to_period('M'))['Verbrauch_kWh'].sum().reset_index()
             df_monat['Beendet'] = df_monat['Beendet'].dt.to_timestamp()
-            st.line_chart(df_monat.set_index('Beendet'))
+            st.bar_chart(df_monat.set_index('Beendet'))
 
             st.subheader("Aggregierter Verbrauch pro Jahr")
             df_jahr = df.groupby(df['Beendet'].dt.year)['Verbrauch_kWh'].sum().reset_index()
@@ -75,14 +78,15 @@ if uploaded_file is not None:
         # KPIs nach Standort
         grouped = df.groupby('Standortname', as_index=False).agg({
             'Verbrauch_kWh': 'sum',
-            'Kosten_EUR': 'sum'
+            'Kosten_EUR': 'sum',
+            'kWh_pro_LV': 'mean'
         })
 
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
 
         # Balkendiagramme
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
             st.subheader("⚡ Verbrauch nach Standort (kWh)")
@@ -90,9 +94,15 @@ if uploaded_file is not None:
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
-            st.subheader("💶 Ladekosten nach Standort (€)")
+            st.subheader("💶 Ladekosten für den User nach Standort (€)")
             fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR", title="Gesamtkosten", color="Standortname")
             st.plotly_chart(fig2, use_container_width=True)
+
+        with col3:
+            st.subheader("Durchschnittlicher Energiemenge pro Ladevorgang")
+            fig3 = px.bar(grouped, x="Standortname", y="'kWh_pro_LV'", title="Gesamtkosten", color="Standortname")
+            st.plotly_chart(fig3, use_container_width=True)
+
 
         # Detaillierte Auswertung pro Standort
         st.subheader("📊 Detaillierte Auswertung pro Standort")
@@ -101,7 +111,7 @@ if uploaded_file is not None:
             st.markdown(f"### 📍 {standort}")
             df_standort = df[df['Standortname'] == standort]
 
-            pie_col1, pie_col2 = st.columns(2)
+            pie_col1, line_col1 = st.columns(2)
 
             with pie_col1:
                 auth_counts = df_standort['Auth. Typ'].value_counts().reset_index()
@@ -109,8 +119,40 @@ if uploaded_file is not None:
                 fig_auth = px.pie(auth_counts, names='Auth. Typ', values='Anzahl', title="Auth. Typ Verteilung")
                 st.plotly_chart(fig_auth, use_container_width=True)
 
+            with line_col1:
+                # Gruppierung nach Monat und Auth. Typ
+                auth_trend = df_standort.groupby(['Monat', 'Auth. Typ']).size().reset_index(name='Anzahl')
+
+                # Liniendiagramm mit Plotly
+                fig_auth_trend = px.line(
+                    auth_trend,
+                    x="Beendet",
+                    y='Anzahl',
+                    color='Auth. Typ',
+                    markers=True,
+                    title="Verlauf der Auth. Typen im Zeitverlauf"
+                )
+                st.plotly_chart(fig_auth_trend, use_container_width=True)
+
+            pie_col2, line_col2 = st.columns(2)
+
             with pie_col2:
                 provider_counts = df_standort['Provider'].value_counts().reset_index()
                 provider_counts.columns = ['Provider', 'Anzahl']
                 fig_provider = px.pie(provider_counts, names='Provider', values='Anzahl', title="Provider Verteilung")
                 st.plotly_chart(fig_provider, use_container_width=True)
+
+            with line_col2:
+                # Gruppierung nach Monat und Providern
+                prov_trend = df_standort.groupby(['Monat', 'Provider']).size().reset_index(name='Anzahl')
+
+                # Liniendiagramm mit Plotly
+                fig_prov_trend = px.line(
+                    prov_trend,
+                    x="Beendet",
+                    y='Anzahl',
+                    color='Provider',
+                    markers=True,
+                    title="Verlauf der Provider im Zeitverlauf"
+                )
+                st.plotly_chart(fig_prov_trend, use_container_width=True)
