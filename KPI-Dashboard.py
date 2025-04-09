@@ -47,6 +47,15 @@ if uploaded_file is not None:
 
         st.write(df)
 
+        # Monatsnamen erstellen
+        monatsnamen = {
+            1: "Januar", 2: "Februar", 3: "März", 4: "April",
+            5: "Mai", 6: "Juni", 7: "Juli", 8: "August",
+            9: "September", 10: "Oktober", 11: "November", 12: "Dezember"
+        }
+        df['Monat_name'] = df['Monat'].map(monatsnamen)
+        df['Monat_name'] = pd.Categorical(df['Monat_name'], categories=list(monatsnamen.values()), ordered=True)
+
         # Verbrauchsanalyse
         if 'Verbrauch_kWh' in df.columns:
             st.subheader("Aggregierter Verbrauch pro Stunde")
@@ -79,7 +88,7 @@ if uploaded_file is not None:
         avg_verbrauch_tag = df.groupby('Tag')['Verbrauch_kWh'].mean().reset_index()
         fig_avg_tag = px.bar(
             avg_verbrauch_tag,
-            x='Monat',
+            x='Tag',
             y='Verbrauch_kWh',
             title='📊 Durchschnittlicher Verbrauch pro Tag',
             labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
@@ -87,18 +96,17 @@ if uploaded_file is not None:
             color_continuous_scale='Viridis'
         )
 
-        # Balkendiagramm mit Plotly
-        avg_verbrauch_monat = df.groupby('Monat')['Verbrauch_kWh'].mean().reset_index()
+        # 📊 Durchschnittlicher Verbrauch pro Monat (korrigiert)
+        avg_verbrauch_monat = df.groupby('Monat_name')['Verbrauch_kWh'].mean().reset_index()
         fig_avg_monat = px.bar(
             avg_verbrauch_monat,
-            x='Monat',
+            x='Monat_name',
             y='Verbrauch_kWh',
             title='📊 Durchschnittlicher Verbrauch pro Monat',
-            labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Monat': 'Monat'},
+            labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Monat_name': 'Monat'},
             color='Verbrauch_kWh',
             color_continuous_scale='Viridis'
         )
-
         st.plotly_chart(fig_avg_monat, use_container_width=True)
 
         # KPIs nach Standort
@@ -137,6 +145,22 @@ if uploaded_file is not None:
             st.markdown(f"### 📍 {standort}")
             df_standort = df[df['Standortname'] == standort]
 
+            lin_col1 = st.columns(1)
+
+            with lin_col1:
+                avg_verbrauch_tag = df_standort['Verbrauch_kWh'].mean().reset_index()
+                fig_avg_tag = px.bar(
+                    avg_verbrauch_tag,
+                    x='Tag',
+                    y='Verbrauch_kWh',
+                    title='📊 Durchschnittlicher Verbrauch pro Tag',
+                    labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
+                    color='Verbrauch_kWh',
+                    color_continuous_scale='Blues'
+                )
+                st.plotly_chart(fig_avg_tag, use_container_width=True)
+
+
             pie_col1, line_col1 = st.columns(2)
 
             with pie_col1:
@@ -147,12 +171,10 @@ if uploaded_file is not None:
 
             with line_col1:
                 # Gruppierung nach Monat und Auth. Typ
-                auth_trend = df_standort.groupby(['Monat', 'Auth. Typ']).size().reset_index(name='Anzahl')
-
-                # Liniendiagramm mit Plotly
+                auth_trend = df_standort.groupby(['Monat_name', 'Auth. Typ']).size().reset_index(name='Anzahl')
                 fig_auth_trend = px.line(
                     auth_trend,
-                    x="Beendet",
+                    x="Monat_name",
                     y='Anzahl',
                     color='Auth. Typ',
                     markers=True,
@@ -170,12 +192,10 @@ if uploaded_file is not None:
 
             with line_col2:
                 # Gruppierung nach Monat und Providern
-                prov_trend = df_standort.groupby(['Monat', 'Provider']).size().reset_index(name='Anzahl')
-
-                # Liniendiagramm mit Plotly
+                prov_trend = df_standort.groupby(['Monat_name', 'Provider']).size().reset_index(name='Anzahl')
                 fig_prov_trend = px.line(
                     prov_trend,
-                    x="Beendet",
+                    x="Monat_name",
                     y='Anzahl',
                     color='Provider',
                     markers=True,
