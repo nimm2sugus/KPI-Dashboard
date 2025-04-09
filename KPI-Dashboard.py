@@ -145,21 +145,18 @@ if uploaded_file is not None:
             st.markdown(f"### 📍 {standort}")
             df_standort = df[df['Standortname'] == standort]
 
-            lin_col1 = st.columns(1)
-
-            with lin_col1:
-                avg_verbrauch_tag = df_standort['Verbrauch_kWh'].mean().reset_index()
-                fig_avg_tag = px.bar(
-                    avg_verbrauch_tag,
-                    x='Tag',
-                    y='Verbrauch_kWh',
-                    title='📊 Durchschnittlicher Verbrauch pro Tag',
-                    labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
-                    color='Verbrauch_kWh',
-                    color_continuous_scale='Blues'
-                )
-                st.plotly_chart(fig_avg_tag, use_container_width=True)
-
+            # Energieverbrauch pro Tag für jeden Standort
+            avg_verbrauch_tag = df_standort['Verbrauch_kWh'].mean().reset_index()
+            fig_avg_tag = px.bar(
+                avg_verbrauch_tag,
+                x='Tag',
+                y='Verbrauch_kWh',
+                title='📊 Durchschnittlicher Verbrauch pro Tag',
+                labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
+                color='Verbrauch_kWh',
+                color_continuous_scale='Blues'
+            )
+            st.plotly_chart(fig_avg_tag, use_container_width=True)
 
             pie_col1, line_col1 = st.columns(2)
 
