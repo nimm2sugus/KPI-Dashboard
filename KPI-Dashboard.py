@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Funktion zum Laden der Excel-Datei
 @st.cache_data
 def load_excel_file(uploaded_file):
     try:
@@ -12,16 +11,15 @@ def load_excel_file(uploaded_file):
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
-# Hilfsfunktion: Top N + Rest Gruppierung
+# Funktion: Top-N + Rest gruppieren
 def get_top_n_with_rest(series, top_n=10):
     top_values = series.value_counts().nlargest(top_n).index
     return series.where(series.isin(top_values), other='Rest')
 
-# Streamlit-Seitenlayout
+# Streamlit Layout
 st.set_page_config(page_title="Ladevorgangs-Daten", layout="wide")
 st.title("🔌 Ladeanalyse Dashboard")
 
-# Datei-Upload
 uploaded_file = st.file_uploader("📁 Bereinigte Excel-Datei hochladen", type=["xlsx", "xls"])
 
 if uploaded_file is not None:
@@ -30,21 +28,12 @@ if uploaded_file is not None:
     if df is not None:
         st.subheader("Originaldaten")
 
-        # Zeitspalten umwandeln
         df['Gestartet'] = pd.to_datetime(df['Gestartet'], errors='coerce')
         df['Beendet'] = pd.to_datetime(df['Beendet'], errors='coerce')
-
-        # Verbrauch & Kosten umwandeln
         df['Verbrauch_kWh'] = pd.to_numeric(df['Verbrauch (kWh)'], errors='coerce')
         df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
-
-        # Ladezeit berechnen (in Stunden)
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
-
-        # Durchschnittsleistung berechnen
         df['P_Schnitt'] = df['Verbrauch_kWh'] / df['Ladezeit_h']
-
-        # Zeitdimensionen extrahieren
         df['Jahr'] = df['Beendet'].dt.year
         df['Monat'] = df['Beendet'].dt.month
         df['Tag'] = df['Beendet'].dt.day
@@ -52,7 +41,6 @@ if uploaded_file is not None:
 
         st.write(df)
 
-        # Monatsnamen erstellen
         monatsnamen = {
             1: "Januar", 2: "Februar", 3: "März", 4: "April",
             5: "Mai", 6: "Juni", 7: "Juli", 8: "August",
@@ -102,7 +90,6 @@ if uploaded_file is not None:
         )
         st.plotly_chart(fig_avg_monat, use_container_width=True)
 
-        # KPIs nach Standort
         grouped = df.groupby('Standortname', as_index=False).agg({
             'Verbrauch_kWh': 'sum',
             'Kosten_EUR': 'sum',
@@ -112,7 +99,6 @@ if uploaded_file is not None:
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
 
-        # Balkendiagramme
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -130,14 +116,13 @@ if uploaded_file is not None:
             fig3 = px.bar(grouped, x="Standortname", y="P_Schnitt", title="Durchschnittliche Leistung", color="Standortname")
             st.plotly_chart(fig3, use_container_width=True)
 
-        # Detaillierte Auswertung pro Standort
         st.subheader("📊 Detaillierte Auswertung pro Standort")
 
         for standort in df['Standortname'].dropna().unique():
             st.markdown(f"### 📍 {standort}")
             df_standort = df[df['Standortname'] == standort]
 
-            # Durchschnittlicher Verbrauch pro Tag
+            # Tagesdurchschnitt
             avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh'].mean().reset_index()
             fig_avg_tag = px.bar(
                 avg_verbrauch_tag,
@@ -153,7 +138,6 @@ if uploaded_file is not None:
             pie_col1, line_col1 = st.columns(2)
 
             with pie_col1:
-                # Top 10 Auth. Typen + Rest
                 df_standort['Auth_Typ_kategorisiert'] = get_top_n_with_rest(df_standort['Auth. Typ'], top_n=10)
                 auth_counts = df_standort['Auth_Typ_kategorisiert'].value_counts().reset_index()
                 auth_counts.columns = ['Auth. Typ', 'Anzahl']
@@ -161,21 +145,21 @@ if uploaded_file is not None:
                 st.plotly_chart(fig_auth, use_container_width=True)
 
             with line_col1:
-                auth_trend = df_standort.groupby(['Monat_name', 'Auth. Typ']).size().reset_index(name='Anzahl')
+                df_standort['Auth_Typ_kategorisiert'] = get_top_n_with_rest(df_standort['Auth. Typ'], top_n=10)
+                auth_trend = df_standort.groupby(['Monat_name', 'Auth_Typ_kategorisiert']).size().reset_index(name='Anzahl')
                 fig_auth_trend = px.line(
                     auth_trend,
                     x="Monat_name",
                     y='Anzahl',
-                    color='Auth. Typ',
+                    color='Auth_Typ_kategorisiert',
                     markers=True,
-                    title="Verlauf der Auth. Typen im Zeitverlauf"
+                    title="Verlauf der Auth. Typen (Top 10 + Rest)"
                 )
                 st.plotly_chart(fig_auth_trend, use_container_width=True)
 
             pie_col2, line_col2 = st.columns(2)
 
             with pie_col2:
-                # Top 10 Provider + Rest
                 df_standort['Provider_kategorisiert'] = get_top_n_with_rest(df_standort['Provider'], top_n=10)
                 provider_counts = df_standort['Provider_kategorisiert'].value_counts().reset_index()
                 provider_counts.columns = ['Provider', 'Anzahl']
@@ -183,13 +167,14 @@ if uploaded_file is not None:
                 st.plotly_chart(fig_provider, use_container_width=True)
 
             with line_col2:
-                prov_trend = df_standort.groupby(['Monat_name', 'Provider']).size().reset_index(name='Anzahl')
+                df_standort['Provider_kategorisiert'] = get_top_n_with_rest(df_standort['Provider'], top_n=10)
+                prov_trend = df_standort.groupby(['Monat_name', 'Provider_kategorisiert']).size().reset_index(name='Anzahl')
                 fig_prov_trend = px.line(
                     prov_trend,
                     x="Monat_name",
                     y='Anzahl',
-                    color='Provider',
+                    color='Provider_kategorisiert',
                     markers=True,
-                    title="Verlauf der Provider im Zeitverlauf"
+                    title="Verlauf der Provider (Top 10 + Rest)"
                 )
                 st.plotly_chart(fig_prov_trend, use_container_width=True)
