@@ -43,8 +43,6 @@ if uploaded_file is not None:
         df['Tag'] = df['Beendet'].dt.day
         df['Stunde'] = df['Beendet'].dt.hour
 
-        df['avg_verbrauch_tag'] = df.groupby('Tag')['Verbrauch_kWh'].mean()
-
         # streamlit Tabellendarstellung - Handling ausbaufähig
         st.write(df)
 
@@ -105,7 +103,7 @@ if uploaded_file is not None:
             Kosten_EUR_mean=('Kosten_EUR', 'mean'),
             P_Schnitt_mean=('P_Schnitt', 'mean'),
             Ladezeit_h = ('Kosten_EUR', 'mean'),
-            Anzahl_Ladevorgaenge=('Verbrauch_kWh', 'count'),
+            Anzahl_Ladevorgaenge=('Verbrauch_kWh', 'count')
         )
         # streamlit Tabellendarstellen
         st.subheader("🔢 Allgemeine KPIs nach Standort")
