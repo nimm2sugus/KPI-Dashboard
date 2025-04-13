@@ -12,6 +12,11 @@ def load_excel_file(uploaded_file):
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
+# Hilfsfunktion: Top N + Rest Gruppierung
+def get_top_n_with_rest(series, top_n=10):
+    top_values = series.value_counts().nlargest(top_n).index
+    return series.where(series.isin(top_values), other='Rest')
+
 # Streamlit-Seitenlayout
 st.set_page_config(page_title="Ladevorgangs-Daten", layout="wide")
 st.title("🔌 Ladeanalyse Dashboard")
@@ -37,7 +42,7 @@ if uploaded_file is not None:
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
 
         # Durchschnittsleistung berechnen
-        df['P_Schnitt'] = (df['Verbrauch_kWh'] / df['Ladezeit_h'])
+        df['P_Schnitt'] = df['Verbrauch_kWh'] / df['Ladezeit_h']
 
         # Zeitdimensionen extrahieren
         df['Jahr'] = df['Beendet'].dt.year
@@ -104,7 +109,7 @@ if uploaded_file is not None:
             'P_Schnitt': 'mean'
         })
 
-        st.subheader("📉 Allgemeine KPIs nach Standort")
+        st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
 
         # Balkendiagramme
@@ -121,8 +126,8 @@ if uploaded_file is not None:
             st.plotly_chart(fig2, use_container_width=True)
 
         with col3:
-            st.subheader("Durchschnittliche Leistung pro Ladevorgang")
-            fig3 = px.bar(grouped, x="Standortname", y="P_Schnitt", title="Mittlere Leistung", color="Standortname")
+            st.subheader("Durchschnittlicher Leistung pro Ladevorgang")
+            fig3 = px.bar(grouped, x="Standortname", y="P_Schnitt", title="Durchschnittliche Leistung", color="Standortname")
             st.plotly_chart(fig3, use_container_width=True)
 
         # Detaillierte Auswertung pro Standort
@@ -132,33 +137,34 @@ if uploaded_file is not None:
             st.markdown(f"### 📍 {standort}")
             df_standort = df[df['Standortname'] == standort]
 
-            # Energieverbrauch pro Tag (historisch) je Standort
-            avg_verbrauch_tag = df_standort.groupby(df_standort['Beendet'].dt.date)['Verbrauch_kWh'].mean().reset_index()
-            avg_verbrauch_tag['Beendet'] = pd.to_datetime(avg_verbrauch_tag['Beendet'])
-            fig_avg_tag = px.line(
+            # Durchschnittlicher Verbrauch pro Tag
+            avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh'].mean().reset_index()
+            fig_avg_tag = px.bar(
                 avg_verbrauch_tag,
-                x='Beendet',
+                x='Tag',
                 y='Verbrauch_kWh',
-                title='📈 Durchschnittlicher Verbrauch pro Tag',
-                labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Beendet': 'Datum'},
-                markers=True
+                title='📊 Durchschnittlicher Verbrauch pro Tag',
+                labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
+                color='Verbrauch_kWh',
+                color_continuous_scale='Blues'
             )
             st.plotly_chart(fig_avg_tag, use_container_width=True)
 
             pie_col1, line_col1 = st.columns(2)
 
             with pie_col1:
-                auth_counts = df_standort['Auth. Typ'].value_counts().reset_index()
+                # Top 10 Auth. Typen + Rest
+                df_standort['Auth_Typ_kategorisiert'] = get_top_n_with_rest(df_standort['Auth. Typ'], top_n=10)
+                auth_counts = df_standort['Auth_Typ_kategorisiert'].value_counts().reset_index()
                 auth_counts.columns = ['Auth. Typ', 'Anzahl']
-                fig_auth = px.pie(auth_counts, names='Auth. Typ', values='Anzahl', title="Auth. Typ Verteilung")
+                fig_auth = px.pie(auth_counts, names='Auth. Typ', values='Anzahl', title="Top 10 Auth. Typen + Rest")
                 st.plotly_chart(fig_auth, use_container_width=True)
 
             with line_col1:
-                auth_trend = df_standort.groupby([df_standort['Beendet'].dt.to_period('M').dt.to_timestamp(), 'Auth. Typ'])\
-                    .size().reset_index(name='Anzahl')
+                auth_trend = df_standort.groupby(['Monat_name', 'Auth. Typ']).size().reset_index(name='Anzahl')
                 fig_auth_trend = px.line(
                     auth_trend,
-                    x="Beendet",
+                    x="Monat_name",
                     y='Anzahl',
                     color='Auth. Typ',
                     markers=True,
@@ -169,17 +175,18 @@ if uploaded_file is not None:
             pie_col2, line_col2 = st.columns(2)
 
             with pie_col2:
-                provider_counts = df_standort['Provider'].value_counts().reset_index()
+                # Top 10 Provider + Rest
+                df_standort['Provider_kategorisiert'] = get_top_n_with_rest(df_standort['Provider'], top_n=10)
+                provider_counts = df_standort['Provider_kategorisiert'].value_counts().reset_index()
                 provider_counts.columns = ['Provider', 'Anzahl']
-                fig_provider = px.pie(provider_counts, names='Provider', values='Anzahl', title="Provider Verteilung")
+                fig_provider = px.pie(provider_counts, names='Provider', values='Anzahl', title="Top 10 Provider + Rest")
                 st.plotly_chart(fig_provider, use_container_width=True)
 
             with line_col2:
-                prov_trend = df_standort.groupby([df_standort['Beendet'].dt.to_period('M').dt.to_timestamp(), 'Provider'])\
-                    .size().reset_index(name='Anzahl')
+                prov_trend = df_standort.groupby(['Monat_name', 'Provider']).size().reset_index(name='Anzahl')
                 fig_prov_trend = px.line(
                     prov_trend,
-                    x="Beendet",
+                    x="Monat_name",
                     y='Anzahl',
                     color='Provider',
                     markers=True,
