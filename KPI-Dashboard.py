@@ -11,12 +11,10 @@ def load_excel_file(uploaded_file):
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
-# Funktion: Top-N + Rest gruppieren
 def get_top_n_with_rest(series, top_n=10):
     top_values = series.value_counts().nlargest(top_n).index
     return series.where(series.isin(top_values), other='Rest')
 
-# Streamlit Layout
 st.set_page_config(page_title="Ladevorgangs-Daten", layout="wide")
 st.title("🔌 Ladeanalyse Dashboard")
 
@@ -31,19 +29,16 @@ if uploaded_file is not None:
         df['Gestartet'] = pd.to_datetime(df['Gestartet'], errors='coerce')
         df['Beendet'] = pd.to_datetime(df['Beendet'], errors='coerce')
 
-        # neue Datenspalten
         df['Verbrauch_kWh'] = pd.to_numeric(df['Verbrauch (kWh)'], errors='coerce')
         df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
         df['P_Schnitt'] = df['Verbrauch_kWh'] / df['Ladezeit_h']
 
-        # unnötiges Time-Handling???
         df['Jahr'] = df['Beendet'].dt.year
         df['Monat'] = df['Beendet'].dt.month
         df['Tag'] = df['Beendet'].dt.day
         df['Stunde'] = df['Beendet'].dt.hour
 
-        # streamlit Tabellendarstellung - Handling ausbaufähig
         st.write(df)
 
         monatsnamen = {
@@ -54,7 +49,6 @@ if uploaded_file is not None:
         df['Monat_name'] = df['Monat'].map(monatsnamen)
         df['Monat_name'] = pd.Categorical(df['Monat_name'], categories=list(monatsnamen.values()), ordered=True)
 
-        # Verbrauchsanalyse
         if 'Verbrauch_kWh' in df.columns:
             st.subheader("Aggregierter Verbrauch pro Stunde")
             df_stunde = df.groupby(df['Beendet'].dt.floor('H'))['Verbrauch_kWh'].sum().reset_index()
@@ -77,12 +71,10 @@ if uploaded_file is not None:
         else:
             st.warning("Spalte 'Verbrauch_kWh' nicht gefunden.")
 
-        # Verbrauch im Zeitverlauf
         st.subheader("Darstellungen")
         fig_line = px.line(df, x="Beendet", y="Verbrauch_kWh", title="Verbrauch [kWh]", markers=True)
         st.plotly_chart(fig_line, use_container_width=True)
 
-        # Durchschnittlicher Verbrauch pro Monat
         avg_verbrauch_monat = df.groupby('Monat_name')['Verbrauch_kWh'].mean().reset_index()
         fig_avg_monat = px.bar(
             avg_verbrauch_monat,
@@ -95,17 +87,15 @@ if uploaded_file is not None:
         )
         st.plotly_chart(fig_avg_monat, use_container_width=True)
 
-        # Gruppierung für Tabellendarstellung nach Gesamtdurchschnitt - Auswahl Datendarstellung ausstehend
         grouped = df.groupby('Standortname', as_index=False).agg(
             Verbrauch_kWh_sum=('Verbrauch_kWh', 'sum'),
             Verbrauch_kWh_mean=('Verbrauch_kWh', 'mean'),
             Kosten_EUR_sum=('Kosten_EUR', 'sum'),
             Kosten_EUR_mean=('Kosten_EUR', 'mean'),
             P_Schnitt_mean=('P_Schnitt', 'mean'),
-            Ladezeit_h = ('Kosten_EUR', 'mean'),
+            Ladezeit_h=('Ladezeit_h', 'mean'),
             Anzahl_Ladevorgaenge=('Verbrauch_kWh', 'count')
         )
-        # streamlit Tabellendarstellen
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
 
@@ -122,8 +112,8 @@ if uploaded_file is not None:
             st.plotly_chart(fig2, use_container_width=True)
 
         with col3:
-            st.subheader("Durchschnittlicher Leistung pro Ladevorgang")
-            fig3 = px.bar(grouped, x="Standortname", y="Kosten_EUR_mean", title="Durchschnittliche Leistung", color="Standortname")
+            st.subheader("Durchschnittliche Leistung pro Ladevorgang")
+            fig3 = px.bar(grouped, x="Standortname", y="P_Schnitt_mean", title="Durchschnittliche Leistung", color="Standortname")
             st.plotly_chart(fig3, use_container_width=True)
 
         st.subheader("📊 Detaillierte Auswertung pro Standort")
@@ -132,8 +122,8 @@ if uploaded_file is not None:
             st.markdown(f"### 📍 {standort}")
             df_standort = df[df['Standortname'] == standort]
 
-            # Tagesdurchschnitt
-            avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh_mean'].reset_index()
+            # ✅ Korrektur hier:
+            avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh'].mean().reset_index(name='Verbrauch_kWh_mean')
             fig_avg_tag = px.bar(
                 avg_verbrauch_tag,
                 x='Tag',
@@ -155,7 +145,6 @@ if uploaded_file is not None:
                 st.plotly_chart(fig_auth, use_container_width=True)
 
             with line_col1:
-                df_standort['Auth_Typ_kategorisiert'] = get_top_n_with_rest(df_standort['Auth. Typ'], top_n=10)
                 auth_trend = df_standort.groupby(['Monat_name', 'Auth_Typ_kategorisiert']).size().reset_index(name='Anzahl')
                 fig_auth_trend = px.line(
                     auth_trend,
@@ -177,7 +166,6 @@ if uploaded_file is not None:
                 st.plotly_chart(fig_provider, use_container_width=True)
 
             with line_col2:
-                df_standort['Provider_kategorisiert'] = get_top_n_with_rest(df_standort['Provider'], top_n=10)
                 prov_trend = df_standort.groupby(['Monat_name', 'Provider_kategorisiert']).size().reset_index(name='Anzahl')
                 fig_prov_trend = px.line(
                     prov_trend,
