@@ -36,6 +36,7 @@ if uploaded_file is not None:
         df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
         df['P_Schnitt'] = df['Verbrauch_kWh'] / df['Ladezeit_h']
+
         # unnötiges Time-Handling???
         df['Jahr'] = df['Beendet'].dt.year
         df['Monat'] = df['Beendet'].dt.month
@@ -102,6 +103,7 @@ if uploaded_file is not None:
             Kosten_EUR_mean=('Kosten_EUR', 'mean'),
             P_Schnitt_mean=('P_Schnitt', 'mean'),
             Ladezeit_h = ('Kosten_EUR', 'mean'),
+            Anzahl_Ladevorgaenge=('Verbrauch_kWh', 'count')
         )
         # streamlit Tabellendarstellen
         st.subheader("🔢 Allgemeine KPIs nach Standort")
