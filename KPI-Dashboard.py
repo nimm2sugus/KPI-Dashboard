@@ -30,15 +30,19 @@ if uploaded_file is not None:
 
         df['Gestartet'] = pd.to_datetime(df['Gestartet'], errors='coerce')
         df['Beendet'] = pd.to_datetime(df['Beendet'], errors='coerce')
+
+        # neue Datenspalten
         df['Verbrauch_kWh'] = pd.to_numeric(df['Verbrauch (kWh)'], errors='coerce')
         df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
         df['P_Schnitt'] = df['Verbrauch_kWh'] / df['Ladezeit_h']
+        # unnötiges Time-Handling???
         df['Jahr'] = df['Beendet'].dt.year
         df['Monat'] = df['Beendet'].dt.month
         df['Tag'] = df['Beendet'].dt.day
         df['Stunde'] = df['Beendet'].dt.hour
 
+        # streamlit Tabellendarstellung - Handling ausbaufähig
         st.write(df)
 
         monatsnamen = {
@@ -92,7 +96,9 @@ if uploaded_file is not None:
 
         grouped = df.groupby('Standortname', as_index=False).agg({
             'Verbrauch_kWh': 'sum',
+            'Verbrauch_kWh': 'mean',
             'Kosten_EUR': 'sum',
+            'Kosten_EUR': 'mean',
             'P_Schnitt': 'mean'
         })
 
