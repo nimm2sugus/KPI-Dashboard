@@ -35,6 +35,7 @@ if uploaded_file is not None:
         df['Verbrauch_kWh'] = pd.to_numeric(df['Verbrauch (kWh)'], errors='coerce')
         df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
+        df['Anzahl_Ladevorgänge'] = df.count(df['Verbrauch (kWh)'])
         df['P_Schnitt'] = df['Verbrauch_kWh'] / df['Ladezeit_h']
 
         # unnötiges Time-Handling???
