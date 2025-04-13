@@ -47,15 +47,6 @@ if uploaded_file is not None:
 
         st.write(df)
 
-        # Monatsnamen erstellen
-        monatsnamen = {
-            1: "Januar", 2: "Februar", 3: "März", 4: "April",
-            5: "Mai", 6: "Juni", 7: "Juli", 8: "August",
-            9: "September", 10: "Oktober", 11: "November", 12: "Dezember"
-        }
-        df['Monat_name'] = df['Monat'].map(monatsnamen)
-        df['Monat_name'] = pd.Categorical(df['Monat_name'], categories=list(monatsnamen.values()), ordered=True)
-
         # Verbrauchsanalyse
         if 'Verbrauch_kWh' in df.columns:
             st.subheader("Aggregierter Verbrauch pro Stunde")
@@ -79,33 +70,34 @@ if uploaded_file is not None:
         else:
             st.warning("Spalte 'Verbrauch_kWh' nicht gefunden.")
 
-        # Verbrauch im Zeitverlauf
-        st.subheader("Darstellungen")
+        # Verbrauch im Zeitverlauf (alle Einzelvorgänge)
+        st.subheader("Verbrauch über Zeit (Einzeldaten)")
         fig_line = px.line(df, x="Beendet", y="Verbrauch_kWh", title="Verbrauch [kWh]", markers=True)
         st.plotly_chart(fig_line, use_container_width=True)
 
-        # Balkendiagramm mit Plotly
-        avg_verbrauch_tag = df.groupby('Tag')['Verbrauch_kWh'].mean().reset_index()
-        fig_avg_tag = px.bar(
+        # 📊 Durchschnittlicher Verbrauch pro Tag
+        avg_verbrauch_tag = df.groupby(df['Beendet'].dt.date)['Verbrauch_kWh'].mean().reset_index()
+        avg_verbrauch_tag['Beendet'] = pd.to_datetime(avg_verbrauch_tag['Beendet'])
+        fig_avg_tag = px.line(
             avg_verbrauch_tag,
-            x='Tag',
+            x='Beendet',
             y='Verbrauch_kWh',
-            title='📊 Durchschnittlicher Verbrauch pro Tag',
-            labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
-            color='Verbrauch_kWh',
-            color_continuous_scale='Viridis'
+            title='📈 Durchschnittlicher Verbrauch pro Tag',
+            labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Beendet': 'Tag'},
+            markers=True
         )
+        st.plotly_chart(fig_avg_tag, use_container_width=True)
 
-        # 📊 Durchschnittlicher Verbrauch pro Monat (korrigiert)
-        avg_verbrauch_monat = df.groupby('Monat_name')['Verbrauch_kWh'].mean().reset_index()
-        fig_avg_monat = px.bar(
+        # 📊 Durchschnittlicher Verbrauch pro Monat (zeitlich korrekt)
+        avg_verbrauch_monat = df.groupby(df['Beendet'].dt.to_period('M'))['Verbrauch_kWh'].mean().reset_index()
+        avg_verbrauch_monat['Beendet'] = avg_verbrauch_monat['Beendet'].dt.to_timestamp()
+        fig_avg_monat = px.line(
             avg_verbrauch_monat,
-            x='Monat_name',
+            x='Beendet',
             y='Verbrauch_kWh',
-            title='📊 Durchschnittlicher Verbrauch pro Monat',
-            labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Monat_name': 'Monat'},
-            color='Verbrauch_kWh',
-            color_continuous_scale='Viridis'
+            title='📈 Durchschnittlicher Verbrauch pro Monat (Zeitreihe)',
+            labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Beendet': 'Monat'},
+            markers=True
         )
         st.plotly_chart(fig_avg_monat, use_container_width=True)
 
@@ -134,7 +126,7 @@ if uploaded_file is not None:
 
         with col3:
             st.subheader("Durchschnittlicher Leistung pro Ladevorgang")
-            fig3 = px.bar(grouped, x="Standortname", y="P_Schnitt", title="Gesamtkosten", color="Standortname")
+            fig3 = px.bar(grouped, x="Standortname", y="P_Schnitt", title="Ø Leistung", color="Standortname")
             st.plotly_chart(fig3, use_container_width=True)
 
         # Detaillierte Auswertung pro Standort
@@ -145,15 +137,15 @@ if uploaded_file is not None:
             df_standort = df[df['Standortname'] == standort]
 
             # Energieverbrauch pro Tag für jeden Standort
-            avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh'].mean().reset_index()
-            fig_avg_tag = px.bar(
+            avg_verbrauch_tag = df_standort.groupby(df_standort['Beendet'].dt.date)['Verbrauch_kWh'].mean().reset_index()
+            avg_verbrauch_tag['Beendet'] = pd.to_datetime(avg_verbrauch_tag['index'])
+            fig_avg_tag = px.line(
                 avg_verbrauch_tag,
-                x='Tag',
+                x='Beendet',
                 y='Verbrauch_kWh',
-                title='📊 Durchschnittlicher Verbrauch pro Tag',
-                labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
-                color='Verbrauch_kWh',
-                color_continuous_scale='Blues'
+                title='📈 Durchschnittlicher Verbrauch pro Tag',
+                labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Beendet': 'Datum'},
+                markers=True
             )
             st.plotly_chart(fig_avg_tag, use_container_width=True)
 
@@ -166,15 +158,15 @@ if uploaded_file is not None:
                 st.plotly_chart(fig_auth, use_container_width=True)
 
             with line_col1:
-                # Gruppierung nach Monat und Auth. Typ
-                auth_trend = df_standort.groupby(['Monat_name', 'Auth. Typ']).size().reset_index(name='Anzahl')
+                auth_trend = df_standort.groupby([df_standort['Beendet'].dt.to_period('M'), 'Auth. Typ']).size().reset_index(name='Anzahl')
+                auth_trend['Beendet'] = auth_trend['Beendet'].dt.to_timestamp()
                 fig_auth_trend = px.line(
                     auth_trend,
-                    x="Monat_name",
+                    x="Beendet",
                     y='Anzahl',
                     color='Auth. Typ',
                     markers=True,
-                    title="Verlauf der Auth. Typen im Zeitverlauf"
+                    title="📈 Verlauf der Auth. Typen im Zeitverlauf"
                 )
                 st.plotly_chart(fig_auth_trend, use_container_width=True)
 
@@ -187,16 +179,14 @@ if uploaded_file is not None:
                 st.plotly_chart(fig_provider, use_container_width=True)
 
             with line_col2:
-                # Gruppierung nach Monat und Providern
-                prov_trend = df_standort.groupby(['Monat_name', 'Provider']).size().reset_index(name='Anzahl')
+                prov_trend = df_standort.groupby([df_standort['Beendet'].dt.to_period('M'), 'Provider']).size().reset_index(name='Anzahl')
+                prov_trend['Beendet'] = prov_trend['Beendet'].dt.to_timestamp()
                 fig_prov_trend = px.line(
                     prov_trend,
-                    x="Monat_name",
+                    x="Beendet",
                     y='Anzahl',
                     color='Provider',
                     markers=True,
-                    title="Verlauf der Provider im Zeitverlauf"
+                    title="📈 Verlauf der Provider im Zeitverlauf"
                 )
                 st.plotly_chart(fig_prov_trend, use_container_width=True)
-
-
