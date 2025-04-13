@@ -134,14 +134,14 @@ if uploaded_file is not None:
             df_standort = df[df['Standortname'] == standort]
 
             # Tagesdurchschnitt
-            avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh_sum'].mean().reset_index()
+            avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh_mean'].reset_index()
             fig_avg_tag = px.bar(
                 avg_verbrauch_tag,
                 x='Tag',
-                y='Verbrauch_kWh_sum',
+                y='Verbrauch_kWh_mean',
                 title='📊 Durchschnittlicher Verbrauch pro Tag',
-                labels={'Verbrauch_kWh_sum': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
-                color='Verbrauch_kWh_sum',
+                labels={'Verbrauch_kWh_mean': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
+                color='Verbrauch_kWh_mean',
                 color_continuous_scale='Blues'
             )
             st.plotly_chart(fig_avg_tag, use_container_width=True)
