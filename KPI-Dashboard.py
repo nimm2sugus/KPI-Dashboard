@@ -94,14 +94,16 @@ if uploaded_file is not None:
         )
         st.plotly_chart(fig_avg_monat, use_container_width=True)
 
-        grouped = df.groupby('Standortname', as_index=False).agg({
-            'Verbrauch_kWh': 'sum',
-            'Verbrauch_kWh': 'mean',
-            'Kosten_EUR': 'sum',
-            'Kosten_EUR': 'mean',
-            'P_Schnitt': 'mean'
-        })
-
+        # Gruppierung für Tabellendarstellung nach Gesamtdurchschnitt
+        grouped = df.groupby('Standortname', as_index=False).agg(
+            Verbrauch_kWh_sum=('Verbrauch_kWh', 'sum'),
+            Verbrauch_kWh_mean=('Verbrauch_kWh', 'mean'),
+            Kosten_EUR_sum=('Kosten_EUR', 'sum'),
+            Kosten_EUR_mean=('Kosten_EUR', 'mean'),
+            P_Schnitt_mean=('P_Schnitt', 'mean'),
+            Ladezeit_h = ('Kosten_EUR', 'mean'),
+        )
+        # streamlit Tabellendarstellen
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
 
