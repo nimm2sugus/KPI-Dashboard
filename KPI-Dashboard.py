@@ -167,10 +167,10 @@ if uploaded_file is not None:
                 st.plotly_chart(fig_provider, use_container_width=True)
 
             with line_col2:
-                prov_trend = df_standort.groupby(['Monat_name', 'Provider_kategorisiert']).size().reset_index(name='Anzahl')
+                prov_trend = df_standort.groupby(['Monat', 'Provider_kategorisiert']).size().reset_index(name='Anzahl')
                 fig_prov_trend = px.line(
                     prov_trend,
-                    x="Monat_name",
+                    x="Monat",
                     y='Anzahl',
                     color='Provider_kategorisiert',
                     markers=True,
