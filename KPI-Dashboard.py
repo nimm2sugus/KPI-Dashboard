@@ -116,26 +116,6 @@ if uploaded_file is not None:
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
 
-        """"
-        # Balkendiagramme -> Darstellungen zeigen nur Gesamtsummen der Datengrundlage!!!
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            st.subheader("⚡ Verbrauch nach Standort (kWh)")
-            fig1 = px.bar(grouped, x="Standortname", y="Verbrauch_kWh", title="Gesamtverbrauch", color="Standortname")
-            st.plotly_chart(fig1, use_container_width=True)
-
-        with col2:
-            st.subheader("💶 Ladekosten für den User nach Standort (€)")
-            fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR", title="Gesamtkosten", color="Standortname")
-            st.plotly_chart(fig2, use_container_width=True)
-
-        with col3:
-            st.subheader("Durchschnittlicher Leistung pro Ladevorgang")
-            fig3 = px.bar(grouped, x="Standortname", y="P_Schnitt", title="Ø Leistung", color="Standortname")
-            st.plotly_chart(fig3, use_container_width=True)
-        """
-
         # Detaillierte Auswertung pro Standort
         st.subheader("📊 Detaillierte Auswertung pro Standort")
 
