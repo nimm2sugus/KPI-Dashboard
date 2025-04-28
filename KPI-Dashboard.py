@@ -153,10 +153,7 @@ if uploaded_file is not None:
                 auth_trend['Beendet'] = auth_trend['Beendet'].dt.to_timestamp()
 
                 # Sortiere die Auth-Typen alphabetisch für die konsistente Farbzuordnung
-                unique_auth_types_trend = sorted(auth_trend['Auth. Typ'].unique())
-                color_map_auth = {auth_type: colors_auth[i % len(colors_auth)] for i, auth_type in
-                                  enumerate(unique_auth_types_trend)}
-
+                # Verwende die bereits definierte color_map_auth
                 fig_auth_trend = px.line(
                     auth_trend,
                     x="Beendet",
@@ -164,7 +161,7 @@ if uploaded_file is not None:
                     color="Auth. Typ",
                     markers=True,
                     title="📈 Verlauf der Auth. Typen im Zeitverlauf",
-                    color_discrete_map=color_map_auth
+                    color_discrete_map=color_map_auth  # Die gleiche Farbzuordnung wie im Pie-Chart
                 )
                 st.plotly_chart(fig_auth_trend, use_container_width=True)
 
@@ -208,10 +205,7 @@ if uploaded_file is not None:
                 )
 
                 # Sortiere die Provider alphabetisch für die konsistente Farbzuordnung
-                unique_providers_trend = sorted(prov_trend['Provider_kategorisiert'].unique())
-                color_map_provider = {provider: colors_provider[i % len(colors_provider)] for i, provider in
-                                      enumerate(unique_providers_trend)}
-
+                # Verwende die bereits definierte color_map_provider
                 fig_prov_trend = px.line(
                     prov_trend,
                     x="Monat",
@@ -219,6 +213,6 @@ if uploaded_file is not None:
                     color="Provider_kategorisiert",
                     markers=True,
                     title="📈 Verlauf der Provider (Top 10 + Rest)",
-                    color_discrete_map=color_map_provider
+                    color_discrete_map=color_map_provider  # Die gleiche Farbzuordnung wie im Pie-Chart
                 )
                 st.plotly_chart(fig_prov_trend, use_container_width=True)
