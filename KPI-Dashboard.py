@@ -95,6 +95,10 @@ if uploaded_file is not None:
             'Preisstellung': 'size'
         })
 
+        # Header umbenennen
+        grouped.columns = ['Standortname', 'Durchschnittsverbrauch pro LV [kWh]', 'Durchschnittskosten [Euro]',
+                           'Durchschnittsladezeit [h]', 'Durchschnittsleistung [kWh]', 'Anzahl Ladevorgänge']
+
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
 
