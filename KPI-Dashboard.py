@@ -152,15 +152,11 @@ if uploaded_file is not None:
 
             # --- Pie Chart Provider ---
             with pie_col2:
-                df_standort_copy = df_standort.copy()  # <- sichere Kopie erstellen!
+                df_standort_copy = df_standort.copy()
                 df_standort_copy['Provider_kategorisiert'] = get_top_n_with_rest(df_standort_copy['Provider'], top_n=10)
 
-                provider_counts = (
-                    df_standort_copy['Provider_kategorisiert']
-                    .value_counts()
-                    .reset_index()
-                    .rename(columns={'index': 'Provider', 'Provider_kategorisiert': 'Anzahl'})
-                )
+                provider_counts = df_standort_copy.groupby('Provider_kategorisiert').size().reset_index(name='Anzahl')
+                provider_counts = provider_counts.rename(columns={'Provider_kategorisiert': 'Provider'})
 
                 fig_provider = px.pie(
                     provider_counts,
