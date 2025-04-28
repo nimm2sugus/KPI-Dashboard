@@ -152,13 +152,16 @@ if uploaded_file is not None:
 
             # --- Pie Chart Provider ---
             with pie_col2:
-                df_standort['Provider_kategorisiert'] = get_top_n_with_rest(df_standort['Provider'], top_n=10)
+                df_standort_copy = df_standort.copy()  # <- sichere Kopie erstellen!
+                df_standort_copy['Provider_kategorisiert'] = get_top_n_with_rest(df_standort_copy['Provider'], top_n=10)
+
                 provider_counts = (
-                    df_standort['Provider_kategorisiert']
+                    df_standort_copy['Provider_kategorisiert']
                     .value_counts()
                     .reset_index()
                     .rename(columns={'index': 'Provider', 'Provider_kategorisiert': 'Anzahl'})
                 )
+
                 fig_provider = px.pie(
                     provider_counts,
                     names='Provider',
@@ -169,7 +172,6 @@ if uploaded_file is not None:
 
             # --- Line Chart Provider Verlauf ---
             with line_col2:
-                df_standort_copy = df_standort.copy()
                 df_standort_copy['Monat'] = df_standort_copy['Beendet'].dt.to_period('M').dt.to_timestamp()
 
                 prov_trend = (
