@@ -128,7 +128,8 @@ if uploaded_file is not None:
 
                 # Farbpalette für Auth Typ
                 colors_auth = px.colors.qualitative.Plotly  # Palette 1
-                unique_auth_types = auth_counts['Auth. Typ'].unique()
+                # Sortiere die Auth-Typen alphabetisch
+                unique_auth_types = sorted(auth_counts['Auth. Typ'].tolist())
                 color_map_auth = {auth_type: colors_auth[i % len(colors_auth)] for i, auth_type in
                                   enumerate(unique_auth_types)}
 
@@ -150,6 +151,11 @@ if uploaded_file is not None:
                     .reset_index(name='Anzahl')
                 )
                 auth_trend['Beendet'] = auth_trend['Beendet'].dt.to_timestamp()
+
+                # Sortiere die Auth-Typen alphabetisch für die konsistente Farbzuordnung
+                unique_auth_types_trend = sorted(auth_trend['Auth. Typ'].unique())
+                color_map_auth = {auth_type: colors_auth[i % len(colors_auth)] for i, auth_type in
+                                  enumerate(unique_auth_types_trend)}
 
                 fig_auth_trend = px.line(
                     auth_trend,
@@ -176,7 +182,8 @@ if uploaded_file is not None:
 
                 # Farbpalette für Provider (eine andere als oben!)
                 colors_provider = px.colors.qualitative.D3  # Palette 2
-                unique_providers = provider_counts['Provider'].unique()
+                # Sortiere die Provider alphabetisch
+                unique_providers = sorted(provider_counts['Provider'].tolist())
                 color_map_provider = {provider: colors_provider[i % len(colors_provider)] for i, provider in
                                       enumerate(unique_providers)}
 
@@ -199,6 +206,11 @@ if uploaded_file is not None:
                     .size()
                     .reset_index(name='Anzahl')
                 )
+
+                # Sortiere die Provider alphabetisch für die konsistente Farbzuordnung
+                unique_providers_trend = sorted(prov_trend['Provider_kategorisiert'].unique())
+                color_map_provider = {provider: colors_provider[i % len(colors_provider)] for i, provider in
+                                      enumerate(unique_providers_trend)}
 
                 fig_prov_trend = px.line(
                     prov_trend,
