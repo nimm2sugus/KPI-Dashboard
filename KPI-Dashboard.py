@@ -125,7 +125,20 @@ if uploaded_file is not None:
             with pie_col1:
                 auth_counts = df_standort['Auth. Typ'].value_counts().reset_index()
                 auth_counts.columns = ['Auth. Typ', 'Anzahl']
-                fig_auth = px.pie(auth_counts, names='Auth. Typ', values='Anzahl', title="Auth. Typ Verteilung")
+
+                # Farbpalette für Auth Typ
+                colors_auth = px.colors.qualitative.Plotly  # Palette 1
+                unique_auth_types = auth_counts['Auth. Typ'].unique()
+                color_map_auth = {auth_type: colors_auth[i % len(colors_auth)] for i, auth_type in
+                                  enumerate(unique_auth_types)}
+
+                fig_auth = px.pie(
+                    auth_counts,
+                    names='Auth. Typ',
+                    values='Anzahl',
+                    title="Auth. Typ Verteilung",
+                    color_discrete_map=color_map_auth
+                )
                 st.plotly_chart(fig_auth, use_container_width=True)
 
             # --- Line Chart Auth Typ Verlauf ---
@@ -144,9 +157,12 @@ if uploaded_file is not None:
                     y="Anzahl",
                     color="Auth. Typ",
                     markers=True,
-                    title="📈 Verlauf der Auth. Typen im Zeitverlauf"
+                    title="📈 Verlauf der Auth. Typen im Zeitverlauf",
+                    color_discrete_map=color_map_auth
                 )
                 st.plotly_chart(fig_auth_trend, use_container_width=True)
+
+            # -------------------------------------------------------------------
 
             pie_col2, line_col2 = st.columns(2)
 
@@ -158,11 +174,18 @@ if uploaded_file is not None:
                 provider_counts = df_standort_copy.groupby('Provider_kategorisiert').size().reset_index(name='Anzahl')
                 provider_counts = provider_counts.rename(columns={'Provider_kategorisiert': 'Provider'})
 
+                # Farbpalette für Provider (eine andere als oben!)
+                colors_provider = px.colors.qualitative.D3  # Palette 2
+                unique_providers = provider_counts['Provider'].unique()
+                color_map_provider = {provider: colors_provider[i % len(colors_provider)] for i, provider in
+                                      enumerate(unique_providers)}
+
                 fig_provider = px.pie(
                     provider_counts,
                     names='Provider',
                     values='Anzahl',
-                    title="Top 10 Provider + Rest"
+                    title="Top 10 Provider + Rest",
+                    color_discrete_map=color_map_provider
                 )
                 st.plotly_chart(fig_provider, use_container_width=True)
 
@@ -183,6 +206,7 @@ if uploaded_file is not None:
                     y="Anzahl",
                     color="Provider_kategorisiert",
                     markers=True,
-                    title="📈 Verlauf der Provider (Top 10 + Rest)"
+                    title="📈 Verlauf der Provider (Top 10 + Rest)",
+                    color_discrete_map=color_map_provider
                 )
                 st.plotly_chart(fig_prov_trend, use_container_width=True)
