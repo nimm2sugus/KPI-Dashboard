@@ -124,7 +124,6 @@ if uploaded_file is not None:
             df_standort = df[df['Standortname'] == standort]
 
             # Zurzeit noch mit Tages-"Bins" ....
-            avg_verbrauch_tag = df.groupby(df['Beendet'].dt.date)['Verbrauch_kWh'].mean().reset_index("Verbrauch kWh mean")
             fig_avg_tag = px.bar(
                 avg_verbrauch_tag,
                 x='Tag',
