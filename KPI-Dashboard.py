@@ -174,11 +174,11 @@ if uploaded_file is not None:
 
         for standort in df['Standortname'].dropna().unique():
             st.markdown(f"### 📍 {standort}")
-
             df_standort = df[df['Standortname'] == standort].copy()
 
-            # Durchschnittlicher Verbrauch pro Tag (pro Standort)
-            avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh'].mean().reset_index(name='Verbrauch_kWh_mean')
+            # Durchschnittlicher Verbrauch pro Tag
+            avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh'].mean().reset_index(
+                name='Verbrauch_kWh_mean')
             fig_avg_tag = px.bar(
                 avg_verbrauch_tag,
                 x='Tag',
@@ -190,14 +190,12 @@ if uploaded_file is not None:
             )
             st.plotly_chart(fig_avg_tag, use_container_width=True)
 
-            pie_col1, line_col1 = st.columns(2)
+            # -------- Erste Spaltenreihe: Auth-Typ --------
+            col1, col2 = st.columns(2)
 
-            # --- Pie Chart Auth Typ ---
-            with pie_col1:
+            with col1:
                 auth_counts = df_standort['Auth. Typ'].value_counts().reset_index()
                 auth_counts.columns = ['Auth. Typ', 'Anzahl']
-
-                # Sortiere die Auth-Typen alphabetisch
                 unique_auth_types = sorted(auth_counts['Auth. Typ'].tolist())
                 color_map_auth = {auth_type: colors_auth[i % len(colors_auth)] for i, auth_type in
                                   enumerate(unique_auth_types)}
@@ -206,13 +204,13 @@ if uploaded_file is not None:
                     auth_counts,
                     names='Auth. Typ',
                     values='Anzahl',
-                    title="Auth. Typ Verteilung",
-                    color='Auth. Typ',  # Dies stellt sicher, dass die Farben korrekt zugewiesen werden
-                    color_discrete_map=color_map_auth  # Farbzuordnung für das Pie-Chart
+                    title="🔄 Auth. Typ Verteilung",
+                    color='Auth. Typ',
+                    color_discrete_map=color_map_auth
                 )
                 st.plotly_chart(fig_auth, use_container_width=True)
 
-            with line_col1:
+            with col2:
                 auth_trend = (
                     df_standort
                     .groupby([df_standort['Beendet'].dt.to_period('M'), 'Auth. Typ'])
@@ -220,8 +218,6 @@ if uploaded_file is not None:
                     .reset_index(name='Anzahl')
                 )
                 auth_trend['Beendet'] = auth_trend['Beendet'].dt.to_timestamp()
-
-                # Berechne prozentuale Anteile je Monat
                 auth_trend['Prozent'] = auth_trend.groupby('Beendet')['Anzahl'].transform(lambda x: x / x.sum() * 100)
 
                 fig_auth_trend = px.bar(
@@ -229,27 +225,21 @@ if uploaded_file is not None:
                     x="Beendet",
                     y="Prozent",
                     color="Auth. Typ",
-                    title="📊 Prozentualer Verlauf der Auth. Typen im Zeitverlauf",
+                    title="📊 Prozentualer Verlauf der Auth. Typen",
                     color_discrete_map=color_map_auth
                 )
-
                 fig_auth_trend.update_layout(barmode='stack', yaxis_title='Anteil [%]')
-
                 st.plotly_chart(fig_auth_trend, use_container_width=True)
 
-            # -------------------------------------------------------------------
+            # -------- Zweite Spaltenreihe: Provider --------
+            col3, col4 = st.columns(2)
 
-            pie_col2, line_col2 = st.columns(2)
-
-            # --- Pie Chart Provider ---
-            with pie_col2:
+            with col3:
                 df_standort_copy = df_standort.copy()
                 df_standort_copy['Provider_kategorisiert'] = get_top_n_with_rest(df_standort_copy['Provider'], top_n=10)
-
                 provider_counts = df_standort_copy.groupby('Provider_kategorisiert').size().reset_index(name='Anzahl')
                 provider_counts = provider_counts.rename(columns={'Provider_kategorisiert': 'Provider'})
 
-                # Sortiere die Provider alphabetisch
                 unique_providers = sorted(provider_counts['Provider'].tolist())
                 color_map_provider = {provider: colors_provider[i % len(colors_provider)] for i, provider in
                                       enumerate(unique_providers)}
@@ -258,23 +248,20 @@ if uploaded_file is not None:
                     provider_counts,
                     names='Provider',
                     values='Anzahl',
-                    title="Top 10 Provider + Rest",
-                    color='Provider',  # Dies stellt sicher, dass die Farben korrekt zugewiesen werden
-                    color_discrete_map=color_map_provider  # Farbzuordnung für das Pie-Chart
+                    title="🏢 Top 10 Provider + Rest",
+                    color='Provider',
+                    color_discrete_map=color_map_provider
                 )
                 st.plotly_chart(fig_provider, use_container_width=True)
 
-            with line_col2:
+            with col4:
                 df_standort_copy['Monat'] = df_standort_copy['Beendet'].dt.to_period('M').dt.to_timestamp()
-
                 prov_trend = (
                     df_standort_copy
                     .groupby(['Monat', 'Provider_kategorisiert'])
                     .size()
                     .reset_index(name='Anzahl')
                 )
-
-                # Berechne prozentuale Anteile je Monat
                 prov_trend['Prozent'] = prov_trend.groupby('Monat')['Anzahl'].transform(lambda x: x / x.sum() * 100)
 
                 fig_prov_trend = px.bar(
@@ -282,10 +269,8 @@ if uploaded_file is not None:
                     x="Monat",
                     y="Prozent",
                     color="Provider_kategorisiert",
-                    title="📊 Prozentualer Verlauf der Provider (Top 10 + Rest)",
+                    title="📊 Prozentualer Verlauf der Provider",
                     color_discrete_map=color_map_provider
                 )
-
                 fig_prov_trend.update_layout(barmode='stack', yaxis_title='Anteil [%]')
-
                 st.plotly_chart(fig_prov_trend, use_container_width=True)
