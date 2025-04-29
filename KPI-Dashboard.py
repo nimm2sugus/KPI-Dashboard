@@ -168,7 +168,6 @@ if uploaded_file is not None:
             fig_prov_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
             st.plotly_chart(fig_prov_trend_all, use_container_width=True)
 
-
         # Detaillierte Auswertung pro Standort
         st.subheader("📊 Detaillierte Auswertung pro Standort")
 
@@ -190,10 +189,11 @@ if uploaded_file is not None:
             )
             st.plotly_chart(fig_avg_tag, use_container_width=True)
 
-            # -------- Erste Spaltenreihe: Auth-Typ --------
-            col1, col2 = st.columns(2)
+            # Zwei Spalten: Auth Typ links, Provider rechts
+            auth_col, prov_col = st.columns(2)
 
-            with col1:
+            # ---------- AUTH TYP ----------
+            with auth_col:
                 auth_counts = df_standort['Auth. Typ'].value_counts().reset_index()
                 auth_counts.columns = ['Auth. Typ', 'Anzahl']
                 unique_auth_types = sorted(auth_counts['Auth. Typ'].tolist())
@@ -210,7 +210,6 @@ if uploaded_file is not None:
                 )
                 st.plotly_chart(fig_auth, use_container_width=True)
 
-            with col2:
                 auth_trend = (
                     df_standort
                     .groupby([df_standort['Beendet'].dt.to_period('M'), 'Auth. Typ'])
@@ -225,16 +224,14 @@ if uploaded_file is not None:
                     x="Beendet",
                     y="Prozent",
                     color="Auth. Typ",
-                    title="📊 Prozentualer Verlauf der Auth. Typen",
+                    title="📊 Verlauf Auth. Typ [%]",
                     color_discrete_map=color_map_auth
                 )
                 fig_auth_trend.update_layout(barmode='stack', yaxis_title='Anteil [%]')
                 st.plotly_chart(fig_auth_trend, use_container_width=True)
 
-            # -------- Zweite Spaltenreihe: Provider --------
-            col3, col4 = st.columns(2)
-
-            with col3:
+            # ---------- PROVIDER ----------
+            with prov_col:
                 df_standort_copy = df_standort.copy()
                 df_standort_copy['Provider_kategorisiert'] = get_top_n_with_rest(df_standort_copy['Provider'], top_n=10)
                 provider_counts = df_standort_copy.groupby('Provider_kategorisiert').size().reset_index(name='Anzahl')
@@ -254,7 +251,6 @@ if uploaded_file is not None:
                 )
                 st.plotly_chart(fig_provider, use_container_width=True)
 
-            with col4:
                 df_standort_copy['Monat'] = df_standort_copy['Beendet'].dt.to_period('M').dt.to_timestamp()
                 prov_trend = (
                     df_standort_copy
@@ -269,7 +265,7 @@ if uploaded_file is not None:
                     x="Monat",
                     y="Prozent",
                     color="Provider_kategorisiert",
-                    title="📊 Prozentualer Verlauf der Provider",
+                    title="📊 Verlauf Provider [%]",
                     color_discrete_map=color_map_provider
                 )
                 fig_prov_trend.update_layout(barmode='stack', yaxis_title='Anteil [%]')
