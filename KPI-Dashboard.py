@@ -16,7 +16,6 @@ def get_top_n_with_rest(series, top_n=10):
     top_values = series.value_counts().nlargest(top_n).index
     return series.where(series.isin(top_values), other='Rest')
 
-
 # Streamlit-Seitenlayout
 st.set_page_config(page_title="Ladevorgangs-Daten", layout="wide")
 st.title("🔌 Ladeanalyse Dashboard")
@@ -28,7 +27,7 @@ if uploaded_file is not None:
     df = load_excel_file(uploaded_file)
 
     if df is not None:
-        st.subheader("Originaldaten mit tool-integriertes Datenhandling")
+        st.subheader("Originaldaten nach Datenformatanpassung")
 
         # Kopie für Bearbeitung
         df = df.copy()
@@ -55,31 +54,6 @@ if uploaded_file is not None:
 
         st.write(df)
 
-        # Durchschnittlicher Verbrauch pro Tag
-        avg_verbrauch_tag = df.groupby(df['Beendet'].dt.date)['Verbrauch_kWh'].mean().reset_index()
-        avg_verbrauch_tag['Beendet'] = pd.to_datetime(avg_verbrauch_tag['Beendet'])
-        fig_avg_tag = px.line(
-            avg_verbrauch_tag,
-            x='Beendet',
-            y='Verbrauch_kWh',
-            title='📈 Durchschnittlicher Verbrauch pro Tag (Zeitreihe)',
-            labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Beendet': 'Tag'},
-            markers=True
-        )
-        st.plotly_chart(fig_avg_tag, use_container_width=True)
-
-        # Durchschnittlicher Verbrauch pro Monat
-        avg_verbrauch_monat = df.groupby(df['Beendet'].dt.to_period('M'))['Verbrauch_kWh'].mean().reset_index()
-        avg_verbrauch_monat['Beendet'] = avg_verbrauch_monat['Beendet'].dt.to_timestamp()
-        fig_avg_monat = px.line(
-            avg_verbrauch_monat,
-            x='Beendet',
-            y='Verbrauch_kWh',
-            title='📈 Durchschnittlicher Verbrauch pro Monat (Zeitreihe)',
-            labels={'Verbrauch_kWh': 'Ø Verbrauch (kWh)', 'Beendet': 'Monat'},
-            markers=True
-        )
-        st.plotly_chart(fig_avg_monat, use_container_width=True)
 
         # KPIs nach Standort
         grouped = df.groupby('Standortname', as_index=False).agg({
@@ -97,6 +71,104 @@ if uploaded_file is not None:
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
 
+
+        # Farbpalette für Auth Typ
+        colors_auth = px.colors.qualitative.Plotly  # Palette 1
+        # Farbpalette für Provider (eine andere als oben!)
+        colors_provider = px.colors.qualitative.D3  # Palette 2
+
+
+        # 🔍 Gesamtauswertung für das gesamte Portfolio
+        st.subheader("🌍 Auswertung über das gesamte Portfolio")
+
+        portfolio_col1, portfolio_col2 = st.columns(2)
+
+        # ---------------- AUTH TYP (Gesamt) ----------------
+        with portfolio_col1:
+            auth_counts_all = df['Auth. Typ'].value_counts().reset_index()
+            auth_counts_all.columns = ['Auth. Typ', 'Anzahl']
+
+            unique_auth_types_all = sorted(auth_counts_all['Auth. Typ'].tolist())
+            color_map_auth_all = {auth_type: colors_auth[i % len(colors_auth)] for i, auth_type in
+                                  enumerate(unique_auth_types_all)}
+
+            # Pie Chart für alle Standorte
+            fig_auth_all = px.pie(
+                auth_counts_all,
+                names='Auth. Typ',
+                values='Anzahl',
+                title="🔄 Auth. Typ Verteilung (gesamt)",
+                color='Auth. Typ',
+                color_discrete_map=color_map_auth_all
+            )
+            st.plotly_chart(fig_auth_all, use_container_width=True)
+
+            # Zeitverlauf (Prozent)
+            auth_trend_all = (
+                df
+                .groupby([df['Beendet'].dt.to_period('M'), 'Auth. Typ'])
+                .size()
+                .reset_index(name='Anzahl')
+            )
+            auth_trend_all['Beendet'] = auth_trend_all['Beendet'].dt.to_timestamp()
+            auth_trend_all['Prozent'] = auth_trend_all.groupby('Beendet')['Anzahl'].transform(
+                lambda x: x / x.sum() * 100)
+
+            fig_auth_trend_all = px.bar(
+                auth_trend_all,
+                x="Beendet",
+                y="Prozent",
+                color="Auth. Typ",
+                title="📊 Prozentualer Verlauf der Auth. Typen (gesamt)",
+                color_discrete_map=color_map_auth_all
+            )
+            fig_auth_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
+            st.plotly_chart(fig_auth_trend_all, use_container_width=True)
+
+        # ---------------- PROVIDER (Gesamt) ----------------
+        with portfolio_col2:
+            df_copy_all = df.copy()
+            df_copy_all['Provider_kategorisiert'] = get_top_n_with_rest(df_copy_all['Provider'], top_n=10)
+
+            provider_counts_all = df_copy_all.groupby('Provider_kategorisiert').size().reset_index(name='Anzahl')
+            provider_counts_all = provider_counts_all.rename(columns={'Provider_kategorisiert': 'Provider'})
+
+            unique_providers_all = sorted(provider_counts_all['Provider'].tolist())
+            color_map_provider_all = {provider: colors_provider[i % len(colors_provider)] for i, provider in
+                                      enumerate(unique_providers_all)}
+
+            fig_provider_all = px.pie(
+                provider_counts_all,
+                names='Provider',
+                values='Anzahl',
+                title="🏢 Top 10 Provider + Rest (gesamt)",
+                color='Provider',
+                color_discrete_map=color_map_provider_all
+            )
+            st.plotly_chart(fig_provider_all, use_container_width=True)
+
+            # Zeitverlauf (Prozent)
+            df_copy_all['Monat'] = df_copy_all['Beendet'].dt.to_period('M').dt.to_timestamp()
+            prov_trend_all = (
+                df_copy_all
+                .groupby(['Monat', 'Provider_kategorisiert'])
+                .size()
+                .reset_index(name='Anzahl')
+            )
+            prov_trend_all['Prozent'] = prov_trend_all.groupby('Monat')['Anzahl'].transform(lambda x: x / x.sum() * 100)
+
+            fig_prov_trend_all = px.bar(
+                prov_trend_all,
+                x="Monat",
+                y="Prozent",
+                color="Provider_kategorisiert",
+                title="📊 Prozentualer Verlauf der Provider (gesamt)",
+                color_discrete_map=color_map_provider_all
+            )
+            fig_prov_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
+            st.plotly_chart(fig_prov_trend_all, use_container_width=True)
+
+
         # Detaillierte Auswertung pro Standort
         st.subheader("📊 Detaillierte Auswertung pro Standort")
 
@@ -105,7 +177,7 @@ if uploaded_file is not None:
 
             df_standort = df[df['Standortname'] == standort].copy()
 
-            # Durchschnittlicher Verbrauch pro Tag (im Standort)
+            # Durchschnittlicher Verbrauch pro Tag (pro Standort)
             avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh'].mean().reset_index(name='Verbrauch_kWh_mean')
             fig_avg_tag = px.bar(
                 avg_verbrauch_tag,
@@ -125,8 +197,6 @@ if uploaded_file is not None:
                 auth_counts = df_standort['Auth. Typ'].value_counts().reset_index()
                 auth_counts.columns = ['Auth. Typ', 'Anzahl']
 
-                # Farbpalette für Auth Typ
-                colors_auth = px.colors.qualitative.Plotly  # Palette 1
                 # Sortiere die Auth-Typen alphabetisch
                 unique_auth_types = sorted(auth_counts['Auth. Typ'].tolist())
                 color_map_auth = {auth_type: colors_auth[i % len(colors_auth)] for i, auth_type in
@@ -179,8 +249,6 @@ if uploaded_file is not None:
                 provider_counts = df_standort_copy.groupby('Provider_kategorisiert').size().reset_index(name='Anzahl')
                 provider_counts = provider_counts.rename(columns={'Provider_kategorisiert': 'Provider'})
 
-                # Farbpalette für Provider (eine andere als oben!)
-                colors_provider = px.colors.qualitative.D3  # Palette 2
                 # Sortiere die Provider alphabetisch
                 unique_providers = sorted(provider_counts['Provider'].tolist())
                 color_map_provider = {provider: colors_provider[i % len(colors_provider)] for i, provider in
