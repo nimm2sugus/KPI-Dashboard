@@ -55,11 +55,6 @@ if uploaded_file is not None:
 
         st.write(df)
 
-        # Verbrauch im Zeitverlauf (alle Einzelvorgänge)
-        st.subheader("Verbrauch über Zeit (Einzeldaten)")
-        fig_line = px.line(df, x="Beendet", y="Verbrauch_kWh", title="Verbrauch [kWh]", markers=True)
-        st.plotly_chart(fig_line, use_container_width=True)
-
         # Durchschnittlicher Verbrauch pro Tag
         avg_verbrauch_tag = df.groupby(df['Beendet'].dt.date)['Verbrauch_kWh'].mean().reset_index()
         avg_verbrauch_tag['Beendet'] = pd.to_datetime(avg_verbrauch_tag['Beendet'])
@@ -147,7 +142,6 @@ if uploaded_file is not None:
                 )
                 st.plotly_chart(fig_auth, use_container_width=True)
 
-            # --- Line Chart Auth Typ Verlauf ---
             with line_col1:
                 auth_trend = (
                     df_standort
@@ -157,17 +151,20 @@ if uploaded_file is not None:
                 )
                 auth_trend['Beendet'] = auth_trend['Beendet'].dt.to_timestamp()
 
-                # Sortiere die Auth-Typen alphabetisch für die konsistente Farbzuordnung
-                # Verwende die bereits definierte color_map_auth
-                fig_auth_trend = px.line(
+                # Berechne prozentuale Anteile je Monat
+                auth_trend['Prozent'] = auth_trend.groupby('Beendet')['Anzahl'].transform(lambda x: x / x.sum() * 100)
+
+                fig_auth_trend = px.bar(
                     auth_trend,
                     x="Beendet",
-                    y="Anzahl",
+                    y="Prozent",
                     color="Auth. Typ",
-                    markers=True,
-                    title="📈 Verlauf der Auth. Typen im Zeitverlauf",
-                    color_discrete_map=color_map_auth  # Die gleiche Farbzuordnung wie im Pie-Chart
+                    title="📊 Prozentualer Verlauf der Auth. Typen im Zeitverlauf",
+                    color_discrete_map=color_map_auth
                 )
+
+                fig_auth_trend.update_layout(barmode='stack', yaxis_title='Anteil [%]')
+
                 st.plotly_chart(fig_auth_trend, use_container_width=True)
 
             # -------------------------------------------------------------------
@@ -199,7 +196,6 @@ if uploaded_file is not None:
                 )
                 st.plotly_chart(fig_provider, use_container_width=True)
 
-            # --- Line Chart Provider Verlauf ---
             with line_col2:
                 df_standort_copy['Monat'] = df_standort_copy['Beendet'].dt.to_period('M').dt.to_timestamp()
 
@@ -210,15 +206,18 @@ if uploaded_file is not None:
                     .reset_index(name='Anzahl')
                 )
 
-                # Sortiere die Provider alphabetisch für die konsistente Farbzuordnung
-                # Verwende die bereits definierte color_map_provider
-                fig_prov_trend = px.line(
+                # Berechne prozentuale Anteile je Monat
+                prov_trend['Prozent'] = prov_trend.groupby('Monat')['Anzahl'].transform(lambda x: x / x.sum() * 100)
+
+                fig_prov_trend = px.bar(
                     prov_trend,
                     x="Monat",
-                    y="Anzahl",
+                    y="Prozent",
                     color="Provider_kategorisiert",
-                    markers=True,
-                    title="📈 Verlauf der Provider (Top 10 + Rest)",
-                    color_discrete_map=color_map_provider  # Die gleiche Farbzuordnung wie im Pie-Chart
+                    title="📊 Prozentualer Verlauf der Provider (Top 10 + Rest)",
+                    color_discrete_map=color_map_provider
                 )
+
+                fig_prov_trend.update_layout(barmode='stack', yaxis_title='Anteil [%]')
+
                 st.plotly_chart(fig_prov_trend, use_container_width=True)
