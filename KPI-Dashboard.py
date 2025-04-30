@@ -86,13 +86,13 @@ if uploaded_file is not None:
         with ges_col1:
             st.subheader("⚡ Verbrauch nach Standort (kWh)")
             fig1 = px.bar(grouped, x="Standortname", y="Gesamtverbrauch (kWh)", title="Gesamtverbrauch",
-                          color="Gesamtverbrauch (kWh)", color_continuous_scale='Turbo')
+                          color="Gesamtverbrauch (kWh)")
             st.plotly_chart(fig1, use_container_width=True)
 
         with ges_col2:
             st.subheader("💶 Ladekosten für den User nach Standort (€)")
             fig2 = px.bar(grouped, x="Standortname", y="Gesamtkosten (€)", title="Gesamtkosten",
-                          color="Gesamtkosten (€)", color_continuous_scale='Turbo')
+                          color="Gesamtkosten (€)")
             st.plotly_chart(fig2, use_container_width=True)
 
         portfolio_col1, portfolio_col2 = st.columns(2)
