@@ -35,7 +35,7 @@ if uploaded_file is not None:
         df['Verbrauch_kWh'] = pd.to_numeric(df['Verbrauch (kWh)'], errors='coerce')
         df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
-        df['P_Schnitt'] = (df['Verbrauch_kWh'] / df['Ladezeit_h'])
+        df['P_Schnitt'] = df['Verbrauch_kWh'] / df['Ladezeit_h']
 
         df['Jahr'] = df['Beendet'].dt.year
         df['Monat_num'] = df['Beendet'].dt.month
@@ -58,15 +58,24 @@ if uploaded_file is not None:
         # ➤ KPIs pro Standort
         grouped = df.groupby('Standortname', as_index=False).agg({
             'Verbrauch_kWh': 'mean',
-            'Verbrauch_kWh_sum': 'sum',
             'Kosten_EUR': 'mean',
             'Ladezeit_h': 'mean',
             'P_Schnitt': 'mean',
-            'Preisstellung': 'size'
+            'Verbrauch_kWh': 'sum',
+            'Kosten_EUR': 'sum',
+            'Standortname': 'count'
         })
 
-        grouped.columns = ['Standortname', 'Durchschnittsverbrauch pro LV [kWh]', 'Durchschnittskosten [Euro]',
-                           'Durchschnittsladezeit [h]', 'Durchschnittsleistung [kWh]', 'Anzahl Ladevorgänge']
+        grouped.columns = [
+            'Standortname',
+            'Durchschnittsverbrauch pro LV [kWh]',
+            'Durchschnittskosten [Euro]',
+            'Durchschnittsladezeit [h]',
+            'Durchschnittsleistung [kWh]',
+            'Gesamtverbrauch (kWh)',
+            'Gesamtkosten (€)',
+            'Anzahl Ladevorgänge'
+        ]
 
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
@@ -77,14 +86,15 @@ if uploaded_file is not None:
 
         with ges_col1:
             st.subheader("⚡ Verbrauch nach Standort (kWh)")
-            fig1 = px.bar(grouped, x="Standortname", y="Verbrauch_kWh_sum", title="Gesamtverbrauch", color="Standortname")
+            fig1 = px.bar(grouped, x="Standortname", y="Gesamtverbrauch (kWh)", title="Gesamtverbrauch",
+                          color="Gesamtverbrauch (kWh)", color_continuous_scale='Turbo')
             st.plotly_chart(fig1, use_container_width=True)
 
         with ges_col2:
             st.subheader("💶 Ladekosten für den User nach Standort (€)")
-            fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR_sum", title="Gesamtkosten", color="Standortname")
+            fig2 = px.bar(grouped, x="Standortname", y="Gesamtkosten (€)", title="Gesamtkosten",
+                          color="Gesamtkosten (€)", color_continuous_scale='Turbo')
             st.plotly_chart(fig2, use_container_width=True)
-
 
         portfolio_col1, portfolio_col2 = st.columns(2)
 
