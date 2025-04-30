@@ -62,7 +62,7 @@ if uploaded_file is not None:
             Kosten_EUR_mean=('Kosten_EUR', 'mean'),
             P_Schnitt_LV_mean=('P_Schnitt', 'mean'),
             Ladezeit_h=('Ladezeit_h', 'mean'),
-            Anzahl_Ladevorgaenge=('Kosten_EUR', 'count')
+            Anzahl_Ladevorgaenge=('Verbrauch_kWh', 'count')
         )
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
@@ -165,6 +165,7 @@ if uploaded_file is not None:
             fig_prov_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
             st.plotly_chart(fig_prov_trend_all, use_container_width=True)
 
+
         st.subheader("📊 Detaillierte Auswertung pro Standort")
 
         for standort in df['Standortname'].dropna().unique():
@@ -188,7 +189,7 @@ if uploaded_file is not None:
                 title='📊 Verbrauch pro Monat',
                 labels={'Gesamtverbrauch_kWh': 'Gesamtverbrauch (kWh)', 'Monat': 'Monat'},
                 color='Gesamtverbrauch_kWh',
-                color_continuous_scale='Oranges'
+                color_continuous_scale='Cividis'
             )
             st.plotly_chart(fig_sum_monat, use_container_width=True)
 
