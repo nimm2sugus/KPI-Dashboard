@@ -176,18 +176,18 @@ if uploaded_file is not None:
             df_standort = df[df['Standortname'] == standort].copy()
 
             # Durchschnittlicher Verbrauch pro Tag
-            avg_verbrauch_tag = df_standort.groupby('Tag')['Verbrauch_kWh'].mean().reset_index(
-                name='Verbrauch_kWh_mean')
-            fig_avg_tag = px.bar(
-                avg_verbrauch_tag,
+            verbrauch_monat = df_standort.groupby('Monat')['Verbrauch_kWh'].sum().reset_index(
+                name='Verbrauch_kWh')
+            fig_sum_monat = px.bar(
+                verbrauch_monat,
                 x='Tag',
-                y='Verbrauch_kWh_mean',
-                title='📊 Durchschnittlicher Verbrauch pro Tag',
-                labels={'Verbrauch_kWh_mean': 'Ø Verbrauch (kWh)', 'Tag': 'Tag'},
-                color='Verbrauch_kWh_mean',
-                color_continuous_scale='Blues'
+                y='Verbrauch_kWh',
+                title='📊 Verbrauch pro Monat',
+                labels={'Verbrauch_kWh': 'Gesamtverbrauch (kWh) pro Monat', 'Monat': 'Monat'},
+                color='Verbrauch_kWh',
+                color_continuous_scale='Greens'
             )
-            st.plotly_chart(fig_avg_tag, use_container_width=True)
+            st.plotly_chart(fig_sum_monat, use_container_width=True)
 
             # Zwei Spalten: Auth Typ links, Provider rechts
             auth_col, prov_col = st.columns(2)
