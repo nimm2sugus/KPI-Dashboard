@@ -164,7 +164,7 @@ if uploaded_file is not None:
                 title='📊 Verbrauch pro Monat',
                 labels={'Gesamtverbrauch_kWh': 'Gesamtverbrauch (kWh)', 'Monat': 'Monat'},
                 color='Gesamtverbrauch_kWh',
-                color_continuous_scale='Greens'
+                color_continuous_scale='Turbo'
             )
             st.plotly_chart(fig_sum_monat, use_container_width=True)
 
