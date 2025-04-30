@@ -56,13 +56,13 @@ if uploaded_file is not None:
         color_map_provider_global = {prov: colors_provider[i % len(colors_provider)] for i, prov in enumerate(providers_all)}
 
         # ➤ KPIs pro Standort
-        grouped = df.groupby('Standortname', as_index=False).agg({
+        grouped = df.groupby('Standortname').agg({
             'Verbrauch_kWh': ['mean', 'sum'],
             'Kosten_EUR': ['mean', 'sum'],
             'Ladezeit_h': 'mean',
             'P_Schnitt': 'mean',
-            'Standortname': 'count'  # wird später umbenannt
-        })
+            'Standzeit': 'count'  # Zähle Anzahl Ladevorgänge anhand Verbrauch_kWh
+        }).reset_index()
 
         # Spalten umbenennen (MultiIndex auflösen)
         grouped.columns = [
