@@ -57,23 +57,22 @@ if uploaded_file is not None:
 
         # ➤ KPIs pro Standort
         grouped = df.groupby('Standortname', as_index=False).agg({
-            'Verbrauch_kWh': 'mean',
-            'Kosten_EUR': 'mean',
+            'Verbrauch_kWh': ['mean', 'sum'],
+            'Kosten_EUR': ['mean', 'sum'],
             'Ladezeit_h': 'mean',
             'P_Schnitt': 'mean',
-            'Verbrauch_kWh': 'sum',
-            'Kosten_EUR': 'sum',
-            'Standortname': 'count'
+            'Standortname': 'count'  # wird später umbenannt
         })
 
+        # Spalten umbenennen (MultiIndex auflösen)
         grouped.columns = [
             'Standortname',
             'Durchschnittsverbrauch pro LV [kWh]',
+            'Gesamtverbrauch (kWh)',
             'Durchschnittskosten [Euro]',
+            'Gesamtkosten (€)',
             'Durchschnittsladezeit [h]',
             'Durchschnittsleistung [kWh]',
-            'Gesamtverbrauch (kWh)',
-            'Gesamtkosten (€)',
             'Anzahl Ladevorgänge'
         ]
 
