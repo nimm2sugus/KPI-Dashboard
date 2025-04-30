@@ -58,6 +58,7 @@ if uploaded_file is not None:
         # ➤ KPIs pro Standort
         grouped = df.groupby('Standortname', as_index=False).agg({
             'Verbrauch_kWh': 'mean',
+            'Verbrauch_kWh_sum': 'sum',
             'Kosten_EUR': 'mean',
             'Ladezeit_h': 'mean',
             'P_Schnitt': 'mean',
@@ -71,7 +72,7 @@ if uploaded_file is not None:
         st.dataframe(grouped, use_container_width=True)
 
         st.subheader("🌍 Auswertung über das gesamte Portfolio")
-        
+
         ges_col1, ges_col2 = st.columns(2)
 
         with ges_col1:
@@ -83,8 +84,8 @@ if uploaded_file is not None:
             st.subheader("💶 Ladekosten für den User nach Standort (€)")
             fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR_sum", title="Gesamtkosten", color="Standortname")
             st.plotly_chart(fig2, use_container_width=True)
-        
-        
+
+
         portfolio_col1, portfolio_col2 = st.columns(2)
 
         with portfolio_col1:
