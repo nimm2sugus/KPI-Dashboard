@@ -55,29 +55,29 @@ if uploaded_file is not None:
         providers_all = sorted(df['Provider_kategorisiert'].dropna().unique())
         color_map_provider_global = {prov: colors_provider[i % len(colors_provider)] for i, prov in enumerate(providers_all)}
 
-        # ➤ KPIs pro Standort
-        grouped = df.groupby('Standortname').agg({
-            'Verbrauch_kWh': ['mean', 'sum'],
-            'Kosten_EUR': ['mean', 'sum'],
-            'Ladezeit_h': 'mean',
-            'P_Schnitt': 'mean',
-            'Standzeit': 'count'  # Zähle Anzahl Ladevorgänge anhand Verbrauch_kWh
-        }).reset_index()
-
-        # Spalten umbenennen (MultiIndex auflösen)
-        grouped.columns = [
-            'Standortname',
-            'Durchschnittsverbrauch pro LV [kWh]',
-            'Gesamtverbrauch (kWh)',
-            'Durchschnittskosten [Euro]',
-            'Gesamtkosten (€)',
-            'Durchschnittsladezeit [h]',
-            'Durchschnittsleistung [kWh]',
-            'Anzahl Ladevorgänge'
-        ]
-
+        grouped = df.groupby('Standortname', as_index=False).agg(
+            Verbrauch_kWh_sum=('Verbrauch_kWh', 'sum'),
+            Verbrauch_kWh_mean=('Verbrauch_kWh', 'mean'),
+            Kosten_EUR_sum=('Kosten_EUR', 'sum'),
+            Kosten_EUR_mean=('Kosten_EUR', 'mean'),
+            P_Schnitt_LV_mean=('P_Schnitt', 'mean'),
+            Ladezeit_h=('Ladezeit_h', 'mean'),
+            Anzahl_Ladevorgaenge=('Kosten_EUR', 'count')
+        )
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("⚡ Verbrauch nach Standort (kWh)")
+            fig1 = px.bar(grouped, x="Standortname", y="Verbrauch_kWh_sum", title="Gesamtverbrauch", color="Standortname")
+            st.plotly_chart(fig1, use_container_width=True)
+
+        with col2:
+            st.subheader("💶 Ladekosten für den User nach Standort (€)")
+            fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR_sum", title="Gesamtkosten", color="Standortname")
+            st.plotly_chart(fig2, use_container_width=True)
 
         st.subheader("🌍 Auswertung über das gesamte Portfolio")
 
