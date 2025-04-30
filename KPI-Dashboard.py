@@ -29,24 +29,14 @@ if uploaded_file is not None:
     if df is not None:
         st.subheader("Originaldaten nach Datenformatanpassung")
 
-        # Kopie für Bearbeitung
         df = df.copy()
-
-        # Zeitspalten umwandeln
         df['Gestartet'] = pd.to_datetime(df['Gestartet'], errors='coerce')
         df['Beendet'] = pd.to_datetime(df['Beendet'], errors='coerce')
-
-        # Verbrauch & Kosten umwandeln
         df['Verbrauch_kWh'] = pd.to_numeric(df['Verbrauch (kWh)'], errors='coerce')
         df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
-
-        # Ladezeit berechnen (in Stunden)
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
-
-        # Durchschnittsleistung berechnen
         df['P_Schnitt'] = (df['Verbrauch_kWh'] / df['Ladezeit_h'])
 
-        # Zeitdimensionen extrahieren
         df['Jahr'] = df['Beendet'].dt.year
         df['Monat_num'] = df['Beendet'].dt.month
         df['Tag'] = df['Beendet'].dt.day
@@ -54,8 +44,6 @@ if uploaded_file is not None:
 
         st.write(df)
 
-
-        # KPIs nach Standort
         grouped = df.groupby('Standortname', as_index=False).agg({
             'Verbrauch_kWh': 'mean',
             'Kosten_EUR': 'mean',
@@ -64,26 +52,18 @@ if uploaded_file is not None:
             'Preisstellung': 'size'
         })
 
-        # Header umbenennen
         grouped.columns = ['Standortname', 'Durchschnittsverbrauch pro LV [kWh]', 'Durchschnittskosten [Euro]',
                            'Durchschnittsladezeit [h]', 'Durchschnittsleistung [kWh]', 'Anzahl Ladevorgänge']
 
         st.subheader("🔢 Allgemeine KPIs nach Standort")
         st.dataframe(grouped, use_container_width=True)
 
+        colors_auth = px.colors.qualitative.Plotly
+        colors_provider = px.colors.qualitative.D3
 
-        # Farbpalette für Auth Typ
-        colors_auth = px.colors.qualitative.Plotly  # Palette 1
-        # Farbpalette für Provider (eine andere als oben!)
-        colors_provider = px.colors.qualitative.D3  # Palette 2
-
-
-        # 🔍 Gesamtauswertung für das gesamte Portfolio
         st.subheader("🌍 Auswertung über das gesamte Portfolio")
-
         portfolio_col1, portfolio_col2 = st.columns(2)
 
-        # ---------------- AUTH TYP (Gesamt) ----------------
         with portfolio_col1:
             auth_counts_all = df['Auth. Typ'].value_counts().reset_index()
             auth_counts_all.columns = ['Auth. Typ', 'Anzahl']
@@ -92,7 +72,6 @@ if uploaded_file is not None:
             color_map_auth_all = {auth_type: colors_auth[i % len(colors_auth)] for i, auth_type in
                                   enumerate(unique_auth_types_all)}
 
-            # Pie Chart für alle Standorte
             fig_auth_all = px.pie(
                 auth_counts_all,
                 names='Auth. Typ',
@@ -103,7 +82,6 @@ if uploaded_file is not None:
             )
             st.plotly_chart(fig_auth_all, use_container_width=True)
 
-            # Zeitverlauf (Prozent)
             auth_trend_all = (
                 df
                 .groupby([df['Beendet'].dt.to_period('M'), 'Auth. Typ'])
@@ -125,7 +103,6 @@ if uploaded_file is not None:
             fig_auth_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
             st.plotly_chart(fig_auth_trend_all, use_container_width=True)
 
-        # ---------------- PROVIDER (Gesamt) ----------------
         with portfolio_col2:
             df_copy_all = df.copy()
             df_copy_all['Provider_kategorisiert'] = get_top_n_with_rest(df_copy_all['Provider'], top_n=10)
@@ -147,7 +124,6 @@ if uploaded_file is not None:
             )
             st.plotly_chart(fig_provider_all, use_container_width=True)
 
-            # Zeitverlauf (Prozent)
             df_copy_all['Monat'] = df_copy_all['Beendet'].dt.to_period('M').dt.to_timestamp()
             prov_trend_all = (
                 df_copy_all
@@ -168,31 +144,35 @@ if uploaded_file is not None:
             fig_prov_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
             st.plotly_chart(fig_prov_trend_all, use_container_width=True)
 
-        # Detaillierte Auswertung pro Standort
         st.subheader("📊 Detaillierte Auswertung pro Standort")
 
         for standort in df['Standortname'].dropna().unique():
             st.markdown(f"### 📍 {standort}")
             df_standort = df[df['Standortname'] == standort].copy()
 
-            # Durchschnittlicher Verbrauch pro Tag
-            verbrauch_monat = df_standort.groupby([df_standort['Beendet'].dt.to_period('M'), 'Verbrauch_kWh']).sum().reset_index(
-                name='Verbrauch_kWh')
+            # ✅ Korrigierter Teil für Verbrauch pro Monat:
+            verbrauch_monat = (
+                df_standort
+                .groupby(df_standort['Beendet'].dt.to_period('M'))['Verbrauch_kWh']
+                .sum()
+                .reset_index()
+                .rename(columns={'Beendet': 'Monat', 'Verbrauch_kWh': 'Gesamtverbrauch_kWh'})
+            )
+            verbrauch_monat['Monat'] = verbrauch_monat['Monat'].dt.to_timestamp()
+
             fig_sum_monat = px.bar(
                 verbrauch_monat,
-                x='Tag',
-                y='Verbrauch_kWh',
+                x='Monat',
+                y='Gesamtverbrauch_kWh',
                 title='📊 Verbrauch pro Monat',
-                labels={'Verbrauch_kWh': 'Gesamtverbrauch (kWh) pro Monat', 'Monat': 'Monat'},
-                color='Verbrauch_kWh',
+                labels={'Gesamtverbrauch_kWh': 'Gesamtverbrauch (kWh)', 'Monat': 'Monat'},
+                color='Gesamtverbrauch_kWh',
                 color_continuous_scale='Greens'
             )
             st.plotly_chart(fig_sum_monat, use_container_width=True)
 
-            # Zwei Spalten: Auth Typ links, Provider rechts
             auth_col, prov_col = st.columns(2)
 
-            # ---------- AUTH TYP ----------
             with auth_col:
                 auth_counts = df_standort['Auth. Typ'].value_counts().reset_index()
                 auth_counts.columns = ['Auth. Typ', 'Anzahl']
@@ -230,7 +210,6 @@ if uploaded_file is not None:
                 fig_auth_trend.update_layout(barmode='stack', yaxis_title='Anteil [%]')
                 st.plotly_chart(fig_auth_trend, use_container_width=True)
 
-            # ---------- PROVIDER ----------
             with prov_col:
                 df_standort_copy = df_standort.copy()
                 df_standort_copy['Provider_kategorisiert'] = get_top_n_with_rest(df_standort_copy['Provider'], top_n=10)
