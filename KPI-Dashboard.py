@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+# Streamlit-Seitenlayout
+st.set_page_config(page_title="Ladevorgangs-Daten", layout="wide")
+
 """# Funktion zum Laden der Excel-Datei
 @st.cache_data
 def load_excel_file(uploaded_file):
@@ -35,11 +38,9 @@ def get_top_n_with_rest(series, top_n=10):
     top_values = series.value_counts().nlargest(top_n).index
     return series.where(series.isin(top_values), other='Rest')
 
-sharepoint_url = "https://recapgreenenergy.sharepoint.com/:x:/r/sites/recapDE/Freigegebene%20Dokumente/recapDE/03_LIS/00%20Projekte/01%20-%20Betrieb/00%20Portfolio/02_Auswertungen/Performance/Datengrundlage%20Gesamt/2025%2004%2029%20-%20Datengrundlage%20Gesamt.xlsx?d=w6aa279f33f8b404caa74309938eefce5&csf=1&web=1&e=xrDeYy?download=1"
+sharepoint_url = "https://recapgreenenergy.sharepoint.com/:x:/s/recapDE/EfN5omqLP0xAqnQwmTju_OUBKdBP4DvuqRFvNHEvM-gSjg?e=d8ItFa?download=1"
 df = lade_excel_von_sharepoint(sharepoint_url)
 
-# Streamlit-Seitenlayout
-st.set_page_config(page_title="Ladevorgangs-Daten", layout="wide")
 st.title("🔌 Ladeanalyse Dashboard")
 
 """# Datei-Upload
