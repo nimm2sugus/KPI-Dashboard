@@ -1,34 +1,51 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import urllib.request
 
 # Streamlit-Seitenlayout
 st.set_page_config(page_title="Ladevorgangs-Daten", layout="wide")
 
-
-# Funktion zum Laden der Excel-Datei
+# Funktion zum Laden der Excel-Datei (Upload oder URL)
 @st.cache_data
-def load_excel_file(uploaded_file):
+def load_excel_file(source, from_url=False):
     try:
-        df = pd.read_excel(uploaded_file, engine='openpyxl')
+        if from_url:
+            response = urllib.request.urlopen(source)
+            df = pd.read_excel(response, engine='openpyxl')
+        else:
+            df = pd.read_excel(source, engine='openpyxl')
         return df
     except Exception as e:
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
-
 def get_top_n_with_rest(series, top_n=10):
     top_values = series.value_counts().nlargest(top_n).index
     return series.where(series.isin(top_values), other='Rest')
 
-
 st.title("🔌 Ladeanalyse Dashboard")
 
-# Datei-Upload
-uploaded_file = st.file_uploader("📁 Bereinigte Excel-Datei hochladen", type=["xlsx", "xls"])
+# Auswahlmöglichkeit: Upload oder SharePoint-Link
+input_method = st.radio("📂 Datenquelle wählen:", ["Datei-Upload", "SharePoint-Link"])
 
-if uploaded_file is not None:
-    df = load_excel_file(uploaded_file)
+df = None
+
+if input_method == "Datei-Upload":
+    uploaded_file = st.file_uploader("📁 Bereinigte Excel-Datei hochladen", type=["xlsx", "xls"])
+    if uploaded_file is not None:
+        df = load_excel_file(uploaded_file)
+        if df is not None:
+            st.success("Datei erfolgreich geladen.")
+
+elif input_method == "SharePoint-Link":
+    sharepoint_url = st.text_input("🔗 Öffentlicher SharePoint-Download-Link zur Excel-Datei", "")
+    if sharepoint_url:
+        if st.button("Excel von SharePoint laden"):
+            df = load_excel_file(sharepoint_url, from_url=True)
+            if df is not None:
+                st.success("Datei erfolgreich von SharePoint geladen.")
+
     if df is not None:
         st.write("Datei erfolgreich geladen.")
 
