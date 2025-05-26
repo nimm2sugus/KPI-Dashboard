@@ -15,8 +15,6 @@ def load_excel_file(uploaded_file):
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
-
-
 def get_top_n_with_rest(series, top_n=10):
     top_values = series.value_counts().nlargest(top_n).index
     return series.where(series.isin(top_values), other='Rest')
@@ -155,7 +153,6 @@ if uploaded_file is not None:
             )
             fig_prov_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
             st.plotly_chart(fig_prov_trend_all, use_container_width=True)
-
 
         st.subheader("📊 Detaillierte Auswertung pro Standort")
 
