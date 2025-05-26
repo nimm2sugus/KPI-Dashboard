@@ -38,7 +38,7 @@ def get_top_n_with_rest(series, top_n=10):
     top_values = series.value_counts().nlargest(top_n).index
     return series.where(series.isin(top_values), other='Rest')
 
-sharepoint_url = "https://recapgreenenergy.sharepoint.com/:x:/s/recapDE/EfN5omqLP0xAqnQwmTju_OUBKdBP4DvuqRFvNHEvM-gSjg?e=d8ItFa?download=1"
+sharepoint_url = "https://recapgreenenergy.sharepoint.com/:x:/r/sites/recapDE/_layouts/15/Doc.aspx?sourcedoc=%7B6AA279F3-3F8B-404C-AA74-309938EEFCE5%7D&file=2025%2004%2029%20-%20Datengrundlage%20Gesamt.xlsx&wdLOR=c30865A78-65A5-4D98-9ECC-4CA329AF6FD7&fromShare=true&action=default&mobileredirect=true?download=1"
 df = lade_excel_von_sharepoint(sharepoint_url)
 
 st.title("🔌 Ladeanalyse Dashboard")
