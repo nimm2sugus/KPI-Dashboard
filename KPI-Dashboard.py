@@ -61,6 +61,12 @@ if df is not None:
     df['Stunde'] = df['Beendet'].dt.hour
     df['Monat'] = df['Beendet'].dt.to_period('M').dt.to_timestamp()
 
+    # Warnung bei fehlerhaften Datumsangaben
+    invalid_dates = df[df['Gestartet'].isna() | df['Beendet'].isna()]
+    if not invalid_dates.empty:
+        st.warning(f"⚠️ {len(invalid_dates)} Zeilen mit ungültigem Datum wurden ignoriert.")
+        st.dataframe(invalid_dates)
+
     st.subheader("Originaldaten nach Datenformatanpassung")
     st.dataframe(df)
 
