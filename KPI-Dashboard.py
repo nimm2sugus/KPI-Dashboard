@@ -47,7 +47,7 @@ elif input_method == "SharePoint-Link":
                 st.success("Datei erfolgreich von SharePoint geladen.")
 
 if df is not None:
-    # Datenformatanpassung
+    # Datenformatanpassungen
     df = df.copy()
     df['Gestartet'] = pd.to_datetime(df['Gestartet'], errors='coerce')
     df['Beendet'] = pd.to_datetime(df['Beendet'], errors='coerce')
@@ -207,6 +207,78 @@ if df is not None:
                 )
                 fig_prov_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
                 st.plotly_chart(fig_prov_trend_all, use_container_width=True)
+
+            st.subheader("📈 Trendentwicklung ausgewählter KPIs nach Standort")
+
+            # Auswahloptionen
+            kpi_auswahl = st.selectbox("🔢 KPI wählen", ['Verbrauch_kWh', 'Kosten_EUR', 'P_Schnitt', 'Ladezeit_h'])
+            aggregationsebene = st.selectbox("🗓️ Aggregationsebene", ['Monat', 'Tag', 'Keine Aggregation'])
+            aggregationsart = st.selectbox("➗ Aggregationsart", ['Summe', 'Mittelwert'])
+
+            # Daten vorbereiten
+            df_trend = df_filtered.copy()
+
+            # Zeitspalte je nach Aggregationsebene erzeugen
+            if aggregationsebene == 'Monat':
+                df_trend['Zeit'] = df_trend['Beendet'].dt.to_period('M').dt.to_timestamp()
+            elif aggregationsebene == 'Tag':
+                df_trend['Zeit'] = df_trend['Beendet'].dt.date
+            else:
+                df_trend['Zeit'] = df_trend['Beendet']  # ohne Aggregation
+
+            # Aggregationsfunktion setzen
+            agg_func = 'sum' if aggregationsart == 'Summe' else 'mean'
+
+            # Gruppierung und Aggregation
+            if aggregationsebene == 'Keine Aggregation':
+                trend_df = df_trend[['Zeit', 'Standortname', kpi_auswahl]].rename(columns={kpi_auswahl: 'KPI_Wert'})
+            else:
+                trend_df = (
+                    df_trend
+                    .groupby(['Zeit', 'Standortname'])
+                    .agg(KPI_Wert=(kpi_auswahl, agg_func))
+                    .reset_index()
+                )
+
+            # Trend-Plot nach Standort
+            fig_kpi_trend = px.line(
+                trend_df,
+                x='Zeit',
+                y='KPI_Wert',
+                color='Standortname',
+                markers=True,
+                title=f'📉 Verlauf von "{kpi_auswahl}" ({aggregationsart}) nach Standort',
+                labels={'Zeit': 'Zeit', 'KPI_Wert': kpi_auswahl}
+            )
+            fig_kpi_trend.update_layout(xaxis_title="Zeit", yaxis_title=kpi_auswahl)
+            st.plotly_chart(fig_kpi_trend, use_container_width=True)
+
+            # 🔄 KUMULIERTE KPI-Entwicklung über alle Standorte
+            st.subheader(f"📊 Kumulierte Entwicklung von '{kpi_auswahl}' über alle Standorte")
+
+            if aggregationsebene == 'Keine Aggregation':
+                df_kumuliert = df_trend[['Zeit', kpi_auswahl]].sort_values(by='Zeit').copy()
+                df_kumuliert['KPI_Kumuliert'] = df_kumuliert[kpi_auswahl].cumsum()
+            else:
+                df_kumuliert = (
+                    df_trend
+                    .groupby('Zeit')
+                    .agg(KPI_Wert=(kpi_auswahl, agg_func))
+                    .sort_index()
+                    .reset_index()
+                )
+                df_kumuliert['KPI_Kumuliert'] = df_kumuliert['KPI_Wert'].cumsum()
+
+            # Plot kumuliert
+            fig_kpi_kumuliert = px.line(
+                df_kumuliert,
+                x='Zeit',
+                y='KPI_Kumuliert',
+                title=f'📈 Kumulierte Entwicklung von "{kpi_auswahl}" ({aggregationsart})',
+                labels={'KPI_Kumuliert': f'Kumuliert: {kpi_auswahl}', 'Zeit': 'Zeit'}
+            )
+            st.plotly_chart(fig_kpi_kumuliert, use_container_width=True)
+
 
             st.subheader("📊 Detaillierte Auswertung pro Standort")
 
