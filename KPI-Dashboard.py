@@ -210,37 +210,48 @@ if df is not None:
 
             st.subheader("📈 Trendentwicklung ausgewählter KPIs nach Standort")
 
-            # Auswahloptionen
-            kpi_auswahl = st.selectbox("🔢 KPI wählen", ['Verbrauch_kWh', 'Kosten_EUR', 'P_Schnitt', 'Ladezeit_h'])
+            # KPI-Auswahl inkl. Anzahl Ladevorgänge
+            kpi_auswahl = st.selectbox("🔢 KPI wählen", ['Verbrauch_kWh', 'Kosten_EUR', 'P_Schnitt', 'Ladezeit_h',
+                                                        'Anzahl_Ladevorgänge'])
             aggregationsebene = st.selectbox("🗓️ Aggregationsebene", ['Monat', 'Tag', 'Keine Aggregation'])
             aggregationsart = st.selectbox("➗ Aggregationsart", ['Summe', 'Mittelwert'])
 
-            # Daten vorbereiten
             df_trend = df_filtered.copy()
 
-            # Zeitspalte je nach Aggregationsebene erzeugen
+            # Zeitspalte definieren
             if aggregationsebene == 'Monat':
                 df_trend['Zeit'] = df_trend['Beendet'].dt.to_period('M').dt.to_timestamp()
             elif aggregationsebene == 'Tag':
                 df_trend['Zeit'] = df_trend['Beendet'].dt.date
             else:
-                df_trend['Zeit'] = df_trend['Beendet']  # ohne Aggregation
+                df_trend['Zeit'] = df_trend['Beendet']
 
-            # Aggregationsfunktion setzen
-            agg_func = 'sum' if aggregationsart == 'Summe' else 'mean'
-
-            # Gruppierung und Aggregation
-            if aggregationsebene == 'Keine Aggregation':
-                trend_df = df_trend[['Zeit', 'Standortname', kpi_auswahl]].rename(columns={kpi_auswahl: 'KPI_Wert'})
+            # Berechnung für "Anzahl_Ladevorgänge" (extra Fall, da keine echte Spalte)
+            if kpi_auswahl == 'Anzahl_Ladevorgänge':
+                if aggregationsebene == 'Keine Aggregation':
+                    trend_df = df_trend[['Zeit', 'Standortname']].copy()
+                    trend_df['KPI_Wert'] = 1
+                else:
+                    trend_df = (
+                        df_trend
+                        .groupby(['Zeit', 'Standortname'])
+                        .size()
+                        .reset_index(name='KPI_Wert')
+                    )
             else:
-                trend_df = (
-                    df_trend
-                    .groupby(['Zeit', 'Standortname'])
-                    .agg(KPI_Wert=(kpi_auswahl, agg_func))
-                    .reset_index()
-                )
+                # Andere KPIs wie gewohnt
+                if aggregationsebene == 'Keine Aggregation':
+                    trend_df = df_trend[['Zeit', 'Standortname', kpi_auswahl]].rename(columns={kpi_auswahl: 'KPI_Wert'})
+                else:
+                    agg_func = 'sum' if aggregationsart == 'Summe' else 'mean'
+                    trend_df = (
+                        df_trend
+                        .groupby(['Zeit', 'Standortname'])
+                        .agg(KPI_Wert=(kpi_auswahl, agg_func))
+                        .reset_index()
+                    )
 
-            # Trend-Plot nach Standort
+            # Trendplot nach Standort
             fig_kpi_trend = px.line(
                 trend_df,
                 x='Zeit',
@@ -253,21 +264,34 @@ if df is not None:
             fig_kpi_trend.update_layout(xaxis_title="Zeit", yaxis_title=kpi_auswahl)
             st.plotly_chart(fig_kpi_trend, use_container_width=True)
 
-            # 🔄 KUMULIERTE KPI-Entwicklung über alle Standorte
+            # 🔄 KUMULIERTER Verlauf (nur Summe sinnvoll)
             st.subheader(f"📊 Kumulierte Entwicklung von '{kpi_auswahl}' über alle Standorte")
 
-            if aggregationsebene == 'Keine Aggregation':
-                df_kumuliert = df_trend[['Zeit', kpi_auswahl]].sort_values(by='Zeit').copy()
-                df_kumuliert['KPI_Kumuliert'] = df_kumuliert[kpi_auswahl].cumsum()
+            if kpi_auswahl == 'Anzahl_Ladevorgänge':
+                if aggregationsebene == 'Keine Aggregation':
+                    df_kumuliert = df_trend[['Zeit']].copy()
+                    df_kumuliert['KPI_Wert'] = 1
+                else:
+                    df_kumuliert = (
+                        df_trend
+                        .groupby('Zeit')
+                        .size()
+                        .reset_index(name='KPI_Wert')
+                    )
             else:
-                df_kumuliert = (
-                    df_trend
-                    .groupby('Zeit')
-                    .agg(KPI_Wert=(kpi_auswahl, agg_func))
-                    .sort_index()
-                    .reset_index()
-                )
-                df_kumuliert['KPI_Kumuliert'] = df_kumuliert['KPI_Wert'].cumsum()
+                if aggregationsebene == 'Keine Aggregation':
+                    df_kumuliert = df_trend[['Zeit', kpi_auswahl]].rename(columns={kpi_auswahl: 'KPI_Wert'}).copy()
+                else:
+                    df_kumuliert = (
+                        df_trend
+                        .groupby('Zeit')
+                        .agg(KPI_Wert=(kpi_auswahl, 'sum' if aggregationsart == 'Summe' else 'mean'))
+                        .reset_index()
+                    )
+
+            # Kumulieren
+            df_kumuliert = df_kumuliert.sort_values(by='Zeit')
+            df_kumuliert['KPI_Kumuliert'] = df_kumuliert['KPI_Wert'].cumsum()
 
             # Plot kumuliert
             fig_kpi_kumuliert = px.line(
