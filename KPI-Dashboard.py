@@ -6,7 +6,7 @@ import urllib.request
 # --- Seitenkonfiguration ---
 st.set_page_config(page_title="Ladevorgangs-Daten", layout="wide")
 
-# --- Funktion zum Laden der Excel-Datei ---
+# --- Funktion zum Laden der Excel-Datei mit Cache ---
 @st.cache_data
 def load_excel_file(source, from_url=False):
     try:
@@ -22,6 +22,7 @@ def load_excel_file(source, from_url=False):
 
 # --- Hilfsfunktion: Top N Werte mit "Rest" zusammenfassen ---
 def get_top_n_with_rest(series, top_n=10):
+    # Top N häufigste Werte beibehalten, alle anderen als 'Rest' markieren
     top_values = series.value_counts().nlargest(top_n).index
     return series.where(series.isin(top_values), other='Rest')
 
@@ -53,48 +54,54 @@ if df is not None:
     # --- Datenvorbereitung ---
     df = df.copy()
 
-    # Wichtig: Spaltennamen prüfen
+    # --- Erforderliche Spalten prüfen ---
     expected_cols = ['Gestartet', 'Beendet', 'Verbrauch (kWh)', 'Kosten', 'Auth. Typ', 'Provider', 'Standortname']
     missing_cols = [col for col in expected_cols if col not in df.columns]
     if missing_cols:
         st.error(f"Fehlende erforderliche Spalten in der Datei: {missing_cols}")
         st.stop()
 
-    # Datumsfelder parsen
+    # --- Datumsfelder parsen ---
     df['Gestartet'] = pd.to_datetime(df['Gestartet'], errors='coerce')
     df['Beendet'] = pd.to_datetime(df['Beendet'], errors='coerce')
 
-    # Numerische Felder konvertieren
-    df['Verbrauch_kWh'] = pd.to_numeric(df['Verbrauch (kWh)'], errors='coerce')
-    df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce')
-
-    # Ladezeit in Stunden berechnen, fehlerhafte entfernen
-    df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600
-    df = df[df['Ladezeit_h'] > 0]  # negative oder 0 Zeit entfernen
-
-    # Leistungs-Schnitt berechnen (kW)
-    df['P_Schnitt'] = df['Verbrauch_kWh'] / df['Ladezeit_h']
-
-    # Weitere Zeitspalten
-    df['Jahr'] = df['Beendet'].dt.year
-    df['Monat'] = df['Beendet'].dt.to_period('M').dt.to_timestamp()
-    df['Tag'] = df['Beendet'].dt.date
-    df['Stunde'] = df['Beendet'].dt.hour
-
-    # Provider kategorisieren (Top 10 + Rest)
-    df['Provider_kategorisiert'] = get_top_n_with_rest(df['Provider'], top_n=10)
-
-    # Warnung für ungültige Daten
+    # Warnung bei ungültigen Datumswerten (wird hier vor Filtern angezeigt)
     invalid_dates = df[df['Gestartet'].isna() | df['Beendet'].isna()]
     if not invalid_dates.empty:
         st.warning(f"⚠️ {len(invalid_dates)} Zeilen mit ungültigem Datum wurden ignoriert.")
         st.dataframe(invalid_dates)
 
+    # Ungültige Datumswerte entfernen
+    df = df.dropna(subset=['Gestartet', 'Beendet'])
+
+    # --- Numerische Felder konvertieren ---
+    df['Verbrauch_kWh'] = pd.to_numeric(df['Verbrauch (kWh)'], errors='coerce').fillna(0)
+    df['Kosten_EUR'] = pd.to_numeric(df['Kosten'], errors='coerce').fillna(0)
+
+    # --- Ladezeit in Stunden berechnen, negative oder 0 Zeit entfernen ---
+    df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600
+    df = df[df['Ladezeit_h'] > 0]
+
+    # --- Leistungs-Schnitt berechnen (kW), Absicherung gegen Division durch 0 ---
+    df['P_Schnitt'] = df.apply(
+        lambda row: row['Verbrauch_kWh'] / row['Ladezeit_h'] if row['Ladezeit_h'] > 0 else 0,
+        axis=1
+    )
+
+    # --- Weitere Zeitspalten ---
+    df['Jahr'] = df['Beendet'].dt.year
+    df['Monat'] = df['Beendet'].dt.to_period('M').dt.to_timestamp()
+    df['Tag'] = df['Beendet'].dt.date
+    df['Stunde'] = df['Beendet'].dt.hour
+
+    # --- Provider kategorisieren (Top 10 + Rest) ---
+    df['Provider_kategorisiert'] = get_top_n_with_rest(df['Provider'], top_n=10)
+
     # --- Sidebar: Filter ---
     st.sidebar.header("Filter")
 
-    min_date = df['Beendet'].min()
-    max_date = df['Beendet'].max()
+    min_date = df['Beendet'].min().date()
+    max_date = df['Beendet'].max().date()
 
     date_range = st.sidebar.date_input(
         "Zeitraum auswählen",
@@ -114,10 +121,13 @@ if df is not None:
 
     start_date, end_date = date_range
 
+    # Enddatum auf 23:59:59 setzen, um den ganzen Tag zu erfassen
+    end_date = pd.to_datetime(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+
     # Filter anwenden
     df_filtered = df[
         (df['Beendet'] >= pd.to_datetime(start_date)) &
-        (df['Beendet'] <= pd.to_datetime(end_date)) &
+        (df['Beendet'] <= end_date) &
         (df['Standortname'].isin(selected_standorte))
     ]
 
@@ -246,7 +256,7 @@ if df is not None:
             func = 'sum' if agg_method == 'Summe' else 'mean'
             df_cum = df_trend.groupby('Zeit').agg(KPI_Wert=(kpi_option, func)).reset_index()
 
-    # Kumulieren
+    # Kumulieren (aufsteigend sortieren)
     df_cum = df_cum.sort_values('Zeit')
     df_cum['KPI_Kumuliert'] = df_cum['KPI_Wert'].cumsum()
 
