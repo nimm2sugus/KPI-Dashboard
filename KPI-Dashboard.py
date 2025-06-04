@@ -1,13 +1,17 @@
+# Ladeanalyse Dashboard - komplett überarbeitetes Skript
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import urllib.request
 
-# Streamlit-Seitenlayout
-st.set_page_config(page_title="Ladevorgangs-Daten", layout="wide")
+# ------------------- Seite konfigurieren -------------------
+st.set_page_config(page_title="Ladeanalyse Dashboard", layout="wide")
+st.title("🔌 Ladeanalyse Dashboard")
 
-# Funktion zum Laden der Excel-Datei (Upload oder URL)
+# ------------------- Hilfsfunktionen -------------------
 @st.cache_data
+
 def load_excel_file(source, from_url=False):
     try:
         if from_url:
@@ -24,30 +28,7 @@ def get_top_n_with_rest(series, top_n=10):
     top_values = series.value_counts().nlargest(top_n).index
     return series.where(series.isin(top_values), other='Rest')
 
-st.title("🔌 Ladeanalyse Dashboard")
-
-# Auswahlmöglichkeit: Upload oder SharePoint-Link
-input_method = st.radio("📂 Datenquelle wählen:", ["Datei-Upload", "SharePoint-Link"])
-
-df = None
-
-if input_method == "Datei-Upload":
-    uploaded_file = st.file_uploader("📁 Bereinigte Excel-Datei hochladen", type=["xlsx", "xls"])
-    if uploaded_file is not None:
-        df = load_excel_file(uploaded_file)
-        if df is not None:
-            st.success("Datei erfolgreich geladen.")
-
-elif input_method == "SharePoint-Link":
-    sharepoint_url = st.text_input("🔗 Öffentlicher SharePoint-Download-Link zur Excel-Datei", "")
-    if sharepoint_url:
-        if st.button("Excel von SharePoint laden"):
-            df = load_excel_file(sharepoint_url, from_url=True)
-            if df is not None:
-                st.success("Datei erfolgreich von SharePoint geladen.")
-
-if df is not None:
-    # Datenformatanpassungen
+def prepare_dataframe(df):
     df = df.copy()
     df['Gestartet'] = pd.to_datetime(df['Gestartet'], errors='coerce')
     df['Beendet'] = pd.to_datetime(df['Beendet'], errors='coerce')
@@ -60,348 +41,103 @@ if df is not None:
     df['Tag'] = df['Beendet'].dt.day
     df['Stunde'] = df['Beendet'].dt.hour
     df['Monat'] = df['Beendet'].dt.to_period('M').dt.to_timestamp()
+    df['Provider_kategorisiert'] = get_top_n_with_rest(df['Provider'], top_n=10)
+    return df
 
-    # Warnung bei fehlerhaften Datumsangaben
+# ------------------- Datenquelle auswählen -------------------
+input_method = st.radio("📂 Datenquelle wählen:", ["Datei-Upload", "SharePoint-Link"])
+df = None
+
+if input_method == "Datei-Upload":
+    uploaded_file = st.file_uploader("📁 Excel-Datei hochladen", type=["xlsx", "xls"])
+    if uploaded_file:
+        df = load_excel_file(uploaded_file)
+elif input_method == "SharePoint-Link":
+    sharepoint_url = st.text_input("🔗 SharePoint-Download-Link")
+    if sharepoint_url and st.button("Laden"):
+        df = load_excel_file(sharepoint_url, from_url=True)
+
+# ------------------- Datenprüfung und Vorverarbeitung -------------------
+if df is not None:
+    df = prepare_dataframe(df)
+
     invalid_dates = df[df['Gestartet'].isna() | df['Beendet'].isna()]
     if not invalid_dates.empty:
-        st.warning(f"⚠️ {len(invalid_dates)} Zeilen mit ungültigem Datum wurden ignoriert.")
+        st.warning(f"{len(invalid_dates)} Zeilen mit ungültigen Datumswerten wurden ignoriert.")
         st.dataframe(invalid_dates)
 
-    st.subheader("Originaldaten nach Datenformatanpassung")
+    st.subheader("🔢 Daten (Vorverarbeitet)")
     st.dataframe(df)
 
-    # 🔁 Einheitliche Farbcodierung:
-    colors_auth = px.colors.qualitative.Plotly
-    colors_provider = px.colors.qualitative.D3
+    # ------------------- Farben -------------------
+    color_map_auth = {k: v for k, v in zip(df['Auth. Typ'].dropna().unique(), px.colors.qualitative.Plotly)}
+    color_map_provider = {k: v for k, v in zip(df['Provider_kategorisiert'].dropna().unique(), px.colors.qualitative.D3)}
 
-    auth_types_all = sorted(df['Auth. Typ'].dropna().unique())
-    color_map_auth_global = {auth: colors_auth[i % len(colors_auth)] for i, auth in enumerate(auth_types_all)}
+    # ------------------- Filter -------------------
+    st.sidebar.header("🔎 Filter")
+    min_d, max_d = df['Beendet'].min(), df['Beendet'].max()
+    date_range = st.sidebar.date_input("Zeitraum", value=(min_d, max_d), min_value=min_d, max_value=max_d)
 
-    df['Provider_kategorisiert'] = get_top_n_with_rest(df['Provider'], top_n=10)
-    providers_all = sorted(df['Provider_kategorisiert'].dropna().unique())
-    color_map_provider_global = {prov: colors_provider[i % len(colors_provider)] for i, prov in enumerate(providers_all)}
+    standorte = sorted(df['Standortname'].dropna().unique())
+    selected_standorte = st.sidebar.multiselect("Standorte", standorte, default=standorte)
 
-    # --- Zentrale Filterung: Zeitraum und Standort ---
-    st.sidebar.header("Filterung der Auswertungen")
+    df_filtered = df[(df['Beendet'] >= pd.to_datetime(date_range[0])) &
+                     (df['Beendet'] <= pd.to_datetime(date_range[1])) &
+                     (df['Standortname'].isin(selected_standorte))]
 
-    # Zeitraum-Filter
-    min_date = df['Beendet'].min()
-    max_date = df['Beendet'].max()
-    date_range = st.sidebar.date_input(
-        "Zeitraum auswählen",
-        value=(min_date, max_date),
-        min_value=min_date,
-        max_value=max_date
-    )
+    if df_filtered.empty:
+        st.warning("Keine Daten für diese Filterkombination.")
+        st.stop()
 
-    if len(date_range) != 2:
-        st.sidebar.error("Bitte einen gültigen Zeitraum auswählen.")
-    else:
-        start_date, end_date = date_range
+    # ------------------- KPIs -------------------
+    st.subheader("📊 KPIs nach Standort")
+    grouped = df_filtered.groupby('Standortname').agg({
+        'Verbrauch_kWh': ['sum', 'mean'],
+        'Kosten_EUR': ['sum', 'mean'],
+        'P_Schnitt': 'mean',
+        'Ladezeit_h': 'mean',
+        'Verbrauch (kWh)': 'count'
+    })
+    grouped.columns = ['Verbrauch_sum', 'Verbrauch_avg', 'Kosten_sum', 'Kosten_avg', 'P_avg', 'Ladezeit_avg', 'Ladevorgange']
+    st.dataframe(grouped.reset_index())
 
-        # Standort-Filter (Mehrfachauswahl möglich)
-        standorte = sorted(df['Standortname'].dropna().unique())
-        selected_standorte = st.sidebar.multiselect(
-            "Standort(e) auswählen",
-            options=standorte,
-            default=standorte
-        )
+    # ------------------- Visualisierungen -------------------
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(px.bar(grouped.reset_index(), x='Standortname', y='Verbrauch_sum', color='Standortname',
+                               title="⚡ Verbrauch (kWh)"), use_container_width=True)
+    with col2:
+        st.plotly_chart(px.bar(grouped.reset_index(), x='Standortname', y='Kosten_sum', color='Standortname',
+                               title="💶 Kosten (€)"), use_container_width=True)
 
-        # Filterdaten anwenden
-        df_filtered = df[
-            (df['Beendet'] >= pd.to_datetime(start_date)) &
-            (df['Beendet'] <= pd.to_datetime(end_date)) &
-            (df['Standortname'].isin(selected_standorte))
-        ]
+    # ------------------- Trendentwicklung -------------------
+    st.subheader("📈 Trendentwicklung KPIs")
 
-        if df_filtered.empty:
-            st.warning("Keine Daten für die gewählte Filterkombination vorhanden.")
-        else:
-            # Gruppierung und KPIs
-            grouped = df_filtered.groupby('Standortname', as_index=False).agg(
-                Verbrauch_kWh_sum=('Verbrauch_kWh', 'sum'),
-                Verbrauch_kWh_mean=('Verbrauch_kWh', 'mean'),
-                Kosten_EUR_sum=('Kosten_EUR', 'sum'),
-                Kosten_EUR_mean=('Kosten_EUR', 'mean'),
-                P_Schnitt_LV_mean=('P_Schnitt', 'mean'),
-                Standzeit_h=('Ladezeit_h', 'mean'),
-                Anzahl_Ladevorgaenge=('Verbrauch_kWh', 'count')
-            )
+    kpi = st.selectbox("KPI", ['Verbrauch_kWh', 'Kosten_EUR', 'P_Schnitt', 'Ladezeit_h'])
+    agg_level = st.selectbox("Aggregationsebene", ['Monat', 'Tag'])
 
-            st.subheader("🔢 Allgemeine KPIs nach Standort")
-            st.dataframe(grouped, use_container_width=True)
+    df_filtered['Zeit'] = df_filtered['Beendet'].dt.to_period('M' if agg_level == 'Monat' else 'D').dt.to_timestamp()
 
-            st.subheader("🌍 Auswertung über das gesamte Portfolio")
+    trend_df = df_filtered.groupby(['Zeit', 'Standortname']).agg({kpi: 'mean'}).reset_index()
 
-            col1, col2 = st.columns(2)
+    fig_trend = px.line(trend_df, x='Zeit', y=kpi, color='Standortname', markers=True,
+                        title=f"{kpi} im Zeitverlauf")
+    st.plotly_chart(fig_trend, use_container_width=True)
 
-            with col1:
-                st.subheader("⚡ Verbrauch nach Standort (kWh)")
-                fig1 = px.bar(grouped, x="Standortname", y="Verbrauch_kWh_sum", title="Gesamtverbrauch", color="Standortname")
-                st.plotly_chart(fig1, use_container_width=True)
+    # ------------------- Auth. Typ Verteilung -------------------
+    st.subheader("🛋️ Authentifizierungstypen")
+    auth_counts = df_filtered['Auth. Typ'].value_counts().reset_index()
+    auth_counts.columns = ['Auth. Typ', 'Anzahl']
 
-            with col2:
-                st.subheader("💶 Ladekosten für den User nach Standort (€)")
-                fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR_sum", title="Gesamtkosten", color="Standortname")
-                st.plotly_chart(fig2, use_container_width=True)
+    fig_auth = px.pie(auth_counts, names='Auth. Typ', values='Anzahl', color='Auth. Typ',
+                      color_discrete_map=color_map_auth)
+    st.plotly_chart(fig_auth, use_container_width=True)
 
-            portfolio_col1, portfolio_col2 = st.columns(2)
+    # ------------------- Provider Verteilung -------------------
+    st.subheader("🏢 Provider")
+    provider_counts = df_filtered['Provider_kategorisiert'].value_counts().reset_index()
+    provider_counts.columns = ['Provider', 'Anzahl']
 
-            with portfolio_col1:
-                auth_counts_all = df_filtered['Auth. Typ'].value_counts().reset_index()
-                auth_counts_all.columns = ['Auth. Typ', 'Anzahl']
-
-                fig_auth_all = px.pie(
-                    auth_counts_all,
-                    names='Auth. Typ',
-                    values='Anzahl',
-                    title="🔄 Auth. Typ Verteilung (gesamt)",
-                    color='Auth. Typ',
-                    color_discrete_map=color_map_auth_global
-                )
-                st.plotly_chart(fig_auth_all, use_container_width=True)
-
-                auth_trend_all = (
-                    df_filtered
-                    .groupby([df_filtered['Beendet'].dt.to_period('M'), 'Auth. Typ'])
-                    .size()
-                    .reset_index(name='Anzahl')
-                )
-                auth_trend_all['Beendet'] = auth_trend_all['Beendet'].dt.to_timestamp()
-                auth_trend_all['Prozent'] = auth_trend_all.groupby('Beendet')['Anzahl'].transform(lambda x: x / x.sum() * 100)
-
-                fig_auth_trend_all = px.bar(
-                    auth_trend_all,
-                    x="Beendet",
-                    y="Prozent",
-                    color="Auth. Typ",
-                    title="📊 Prozentualer Verlauf der Auth. Typen (gesamt)",
-                    color_discrete_map=color_map_auth_global
-                )
-                fig_auth_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
-                st.plotly_chart(fig_auth_trend_all, use_container_width=True)
-
-            with portfolio_col2:
-                provider_counts_all = df_filtered['Provider_kategorisiert'].value_counts().reset_index()
-                provider_counts_all.columns = ['Provider', 'Anzahl']
-
-                fig_provider_all = px.pie(
-                    provider_counts_all,
-                    names='Provider',
-                    values='Anzahl',
-                    title="🏢 Top 10 Provider + Rest (gesamt)",
-                    color='Provider',
-                    color_discrete_map=color_map_provider_global
-                )
-                st.plotly_chart(fig_provider_all, use_container_width=True)
-
-                prov_trend_all = (
-                    df_filtered
-                    .groupby(['Monat', 'Provider_kategorisiert'])
-                    .size()
-                    .reset_index(name='Anzahl')
-                )
-                prov_trend_all['Prozent'] = prov_trend_all.groupby('Monat')['Anzahl'].transform(lambda x: x / x.sum() * 100)
-
-                fig_prov_trend_all = px.bar(
-                    prov_trend_all,
-                    x="Monat",
-                    y="Prozent",
-                    color="Provider_kategorisiert",
-                    title="📊 Prozentualer Verlauf der Provider (gesamt)",
-                    color_discrete_map=color_map_provider_global
-                )
-                fig_prov_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
-                st.plotly_chart(fig_prov_trend_all, use_container_width=True)
-
-            st.subheader("📈 Trendentwicklung ausgewählter KPIs nach Standort")
-
-            # KPI-Auswahl inkl. Anzahl Ladevorgänge
-            kpi_auswahl = st.selectbox("🔢 KPI wählen", ['Verbrauch_kWh', 'Kosten_EUR', 'P_Schnitt', 'Ladezeit_h',
-                                                        'Anzahl_Ladevorgänge'])
-            aggregationsebene = st.selectbox("🗓️ Aggregationsebene", ['Monat', 'Tag', 'Keine Aggregation'])
-            aggregationsart = st.selectbox("➗ Aggregationsart", ['Summe', 'Mittelwert'])
-
-            df_trend = df_filtered.copy()
-
-            # Zeitspalte definieren
-            if aggregationsebene == 'Monat':
-                df_trend['Zeit'] = df_trend['Beendet'].dt.to_period('M').dt.to_timestamp()
-            elif aggregationsebene == 'Tag':
-                df_trend['Zeit'] = df_trend['Beendet'].dt.date
-            else:
-                df_trend['Zeit'] = df_trend['Beendet']
-
-            # Berechnung für "Anzahl_Ladevorgänge" (extra Fall, da keine echte Spalte)
-            if kpi_auswahl == 'Anzahl_Ladevorgänge':
-                if aggregationsebene == 'Keine Aggregation':
-                    trend_df = df_trend[['Zeit', 'Standortname']].copy()
-                    trend_df['KPI_Wert'] = 1
-                else:
-                    trend_df = (
-                        df_trend
-                        .groupby(['Zeit', 'Standortname'])
-                        .size()
-                        .reset_index(name='KPI_Wert')
-                    )
-            else:
-                # Andere KPIs wie gewohnt
-                if aggregationsebene == 'Keine Aggregation':
-                    trend_df = df_trend[['Zeit', 'Standortname', kpi_auswahl]].rename(columns={kpi_auswahl: 'KPI_Wert'})
-                else:
-                    agg_func = 'sum' if aggregationsart == 'Summe' else 'mean'
-                    trend_df = (
-                        df_trend
-                        .groupby(['Zeit', 'Standortname'])
-                        .agg(KPI_Wert=(kpi_auswahl, agg_func))
-                        .reset_index()
-                    )
-
-            # Trendplot nach Standort
-            fig_kpi_trend = px.line(
-                trend_df,
-                x='Zeit',
-                y='KPI_Wert',
-                color='Standortname',
-                markers=True,
-                title=f'📉 Verlauf von "{kpi_auswahl}" ({aggregationsart}) nach Standort',
-                labels={'Zeit': 'Zeit', 'KPI_Wert': kpi_auswahl}
-            )
-            fig_kpi_trend.update_layout(xaxis_title="Zeit", yaxis_title=kpi_auswahl)
-            st.plotly_chart(fig_kpi_trend, use_container_width=True)
-
-            # 🔄 KUMULIERTER Verlauf (nur Summe sinnvoll)
-            st.subheader(f"📊 Kumulierte Entwicklung von '{kpi_auswahl}' über alle Standorte")
-
-            if kpi_auswahl == 'Anzahl_Ladevorgänge':
-                if aggregationsebene == 'Keine Aggregation':
-                    df_kumuliert = df_trend[['Zeit']].copy()
-                    df_kumuliert['KPI_Wert'] = 1
-                else:
-                    df_kumuliert = (
-                        df_trend
-                        .groupby('Zeit')
-                        .size()
-                        .reset_index(name='KPI_Wert')
-                    )
-            else:
-                if aggregationsebene == 'Keine Aggregation':
-                    df_kumuliert = df_trend[['Zeit', kpi_auswahl]].rename(columns={kpi_auswahl: 'KPI_Wert'}).copy()
-                else:
-                    df_kumuliert = (
-                        df_trend
-                        .groupby('Zeit')
-                        .agg(KPI_Wert=(kpi_auswahl, 'sum' if aggregationsart == 'Summe' else 'mean'))
-                        .reset_index()
-                    )
-
-            # Kumulieren
-            df_kumuliert = df_kumuliert.sort_values(by='Zeit')
-            df_kumuliert['KPI_Kumuliert'] = df_kumuliert['KPI_Wert'].cumsum()
-
-            # Plot kumuliert
-            fig_kpi_kumuliert = px.line(
-                df_kumuliert,
-                x='Zeit',
-                y='KPI_Kumuliert',
-                title=f'📈 Kumulierte Entwicklung von "{kpi_auswahl}" ({aggregationsart})',
-                labels={'KPI_Kumuliert': f'Kumuliert: {kpi_auswahl}', 'Zeit': 'Zeit'}
-            )
-            st.plotly_chart(fig_kpi_kumuliert, use_container_width=True)
-
-            st.subheader("📊 Detaillierte Auswertung pro Standort")
-
-            for standort in selected_standorte:
-                st.markdown(f"### 📍 {standort}")
-                df_standort = df_filtered[df_filtered['Standortname'] == standort].copy()
-
-                # Verbrauch pro Monat
-                verbrauch_monat = (
-                    df_standort
-                    .groupby(df_standort['Beendet'].dt.to_period('M'))['Verbrauch_kWh']
-                    .sum()
-                    .reset_index()
-                    .rename(columns={'Beendet': 'Monat', 'Verbrauch_kWh': 'Gesamtverbrauch_kWh'})
-                )
-                verbrauch_monat['Monat'] = verbrauch_monat['Monat'].dt.to_timestamp()
-
-                fig_sum_monat = px.bar(
-                    verbrauch_monat,
-                    x='Monat',
-                    y='Gesamtverbrauch_kWh',
-                    title='📊 Verbrauch pro Monat',
-                    labels={'Gesamtverbrauch_kWh': 'Gesamtverbrauch (kWh)', 'Monat': 'Monat'},
-                    color='Gesamtverbrauch_kWh',
-                    color_continuous_scale='Cividis'
-                )
-                st.plotly_chart(fig_sum_monat, use_container_width=True)
-
-                auth_col, prov_col = st.columns(2)
-
-                with auth_col:
-                    auth_counts = df_standort['Auth. Typ'].value_counts().reset_index()
-                    auth_counts.columns = ['Auth. Typ', 'Anzahl']
-
-                    fig_auth = px.pie(
-                        auth_counts,
-                        names='Auth. Typ',
-                        values='Anzahl',
-                        title="🔄 Auth. Typ Verteilung",
-                        color='Auth. Typ',
-                        color_discrete_map=color_map_auth_global
-                    )
-                    st.plotly_chart(fig_auth, use_container_width=True)
-
-                    auth_trend = (
-                        df_standort
-                        .groupby([df_standort['Beendet'].dt.to_period('M'), 'Auth. Typ'])
-                        .size()
-                        .reset_index(name='Anzahl')
-                    )
-                    auth_trend['Beendet'] = auth_trend['Beendet'].dt.to_timestamp()
-                    auth_trend['Prozent'] = auth_trend.groupby('Beendet')['Anzahl'].transform(lambda x: x / x.sum() * 100)
-
-                    fig_auth_trend = px.bar(
-                        auth_trend,
-                        x="Beendet",
-                        y="Prozent",
-                        color="Auth. Typ",
-                        title="📊 Verlauf Auth. Typ [%]",
-                        color_discrete_map=color_map_auth_global
-                    )
-                    fig_auth_trend.update_layout(barmode='stack', yaxis_title='Anteil [%]')
-                    st.plotly_chart(fig_auth_trend, use_container_width=True)
-
-                with prov_col:
-                    df_standort['Provider_kategorisiert'] = get_top_n_with_rest(df_standort['Provider'], top_n=10)
-                    provider_counts = df_standort['Provider_kategorisiert'].value_counts().reset_index()
-                    provider_counts.columns = ['Provider', 'Anzahl']
-
-                    fig_provider = px.pie(
-                        provider_counts,
-                        names='Provider',
-                        values='Anzahl',
-                        title="🏢 Top 10 Provider + Rest",
-                        color='Provider',
-                        color_discrete_map=color_map_provider_global
-                    )
-                    st.plotly_chart(fig_provider, use_container_width=True)
-
-                    prov_trend = (
-                        df_standort
-                        .groupby(['Monat', 'Provider_kategorisiert'])
-                        .size()
-                        .reset_index(name='Anzahl')
-                    )
-                    prov_trend['Prozent'] = prov_trend.groupby('Monat')['Anzahl'].transform(lambda x: x / x.sum() * 100)
-
-                    fig_prov_trend = px.bar(
-                        prov_trend,
-                        x="Monat",
-                        y="Prozent",
-                        color="Provider_kategorisiert",
-                        title="📊 Verlauf Provider [%]",
-                        color_discrete_map=color_map_provider_global
-                    )
-                    fig_prov_trend.update_layout(barmode='stack', yaxis_title='Anteil [%]')
-                    st.plotly_chart(fig_prov_trend, use_container_width=True)
+    fig_prov = px.pie(provider_counts, names='Provider', values='Anzahl', color='Provider',
+                      color_discrete_map=color_map_provider)
+    st.plotly_chart(fig_prov, use_container_width=True)
