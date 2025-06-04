@@ -303,6 +303,21 @@ if df is not None:
             )
             st.plotly_chart(fig_kpi_kumuliert, use_container_width=True)
 
+            st.subheader("🔎 Vergleich: Alle vs. Gefilterte Einträge für 'Jakob Burkhardt Str.'")
+
+            # Alle aus dem Rohdatenframe
+            df_jb_all = df[df['Standortname'] == 'Jakob Burkhardt Str.'].copy()
+            st.markdown(f"**Gesamteinträge in df: {len(df_jb_all)}**")
+
+            # Gefilterte Einträge
+            df_jb_filtered = df_filtered[df_filtered['Standortname'] == 'Jakob Burkhardt Str.']
+            st.markdown(f"**Gefilterte Einträge in df_filtered: {len(df_jb_filtered)}**")
+
+            # Differenz anzeigen
+            missing = pd.merge(df_jb_all, df_jb_filtered, how='left', indicator=True)
+            missing_rows = missing[missing['_merge'] == 'left_only']
+            st.markdown("**❗️Nicht im gefilterten Datensatz enthaltene Zeilen:**")
+            st.dataframe(missing_rows, use_container_width=True)
 
             st.subheader("📊 Detaillierte Auswertung pro Standort")
 
