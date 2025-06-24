@@ -225,10 +225,23 @@ if df is not None:
         trend_df = pd.concat([trend_df, gesamt_df], ignore_index=True)
 
     # Liniendiagramm
-    fig_trend = px.line(trend_df, x='Zeit', y='KPI_Wert', color='Standortname',
-                        markers=True,
-                        title=f'📉 Verlauf von {kpi_option} (Summe) nach Standort',
-                        labels={'KPI_Wert': kpi_option, 'Zeit': 'Zeit'})
+    fig_trend = px.line(
+        trend_df,
+        x='Zeit',
+        y='KPI_Wert',
+        color='Standortname',
+        markers=True,
+        title=f'📉 Verlauf von {kpi_option} (Summe) nach Standort',
+        labels={'KPI_Wert': kpi_option, 'Zeit': 'Zeit'}
+    )
+
+    # Hervorhebung der Linie "Gesamt"
+    for trace in fig_trend.data:
+        if trace.name == 'Gesamt':
+            trace.update(line=dict(color='black', width=4, dash='dash'))  # schwarz, dick, gestrichelt
+        else:
+            trace.update(line=dict(width=2))  # optionale Vereinheitlichung für andere Linien
+    # Anzeige
     st.plotly_chart(fig_trend, use_container_width=True)
 
     # --- Detaillierte Auswertung je Standort ---
