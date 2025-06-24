@@ -30,12 +30,10 @@ def get_top_n_with_rest(series, top_n=10):
     return series.where(series.isin(top_values), other='Rest')
 
 # --- Hauptprogramm ---
-
 st.title("🔌 Ladeanalyse Dashboard")
 
 # Eingabemethode
 input_method = st.radio("📂 Datenquelle wählen:", ["Datei-Upload", "SharePoint-Link"])
-
 df = None
 selected_standorte = []
 
@@ -289,17 +287,46 @@ if df is not None:
             # Auth. Typ Verteilung für Standort
             auth_counts_standort = df_standort['Auth. Typ'].value_counts().reset_index()
             auth_counts_standort.columns = ['Auth. Typ', 'Anzahl']
-            fig_auth_standort = px.pie(auth_counts_standort, names='Auth. Typ', values='Anzahl',
-                                       title=f"Auth. Typ Verteilung - {standort}",
-                                       color='Auth. Typ', color_discrete_map=color_map_auth)
+            fig_auth_standort = px.pie(
+                auth_counts_standort,
+                names='Auth. Typ',
+                values='Anzahl',
+                title=f"Auth. Typ Verteilung - {standort}",
+                color='Auth. Typ',
+                color_discrete_map=color_map_auth
+            )
+            fig_auth_standort.update_layout(
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=-0.1,
+                    xanchor="center",
+                    x=0.5
+                ),
+                margin=dict(t=40, b=40)
+            )
             st.plotly_chart(fig_auth_standort, use_container_width=True)
-            
+
             # Provider Verteilung für Standort
             prov_counts_standort = df_standort['Provider_kategorisiert'].value_counts().reset_index()
             prov_counts_standort.columns = ['Provider', 'Anzahl']
-            fig_prov_standort = px.pie(prov_counts_standort, names='Provider', values='Anzahl', 
-                                       title="🏢 Top 10 Provider + Rest (gesamt)", color='Provider', 
-                                       color_discrete_map=color_map_provider)
+            fig_prov_standort = px.pie(
+                prov_counts_standort,
+                names='Provider',
+                values='Anzahl',
+                title="🏢 Top 10 Provider + Rest (gesamt)", color='Provider',
+                color_discrete_map=color_map_provider
+            )
+            fig_prov_standort.update_layout(
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=-0.1,
+                    xanchor="center",
+                    x=0.5
+                ),
+                margin=dict(t=40, b=40)
+            )
             st.plotly_chart(fig_prov_standort, use_container_width=True)
 
 else:
