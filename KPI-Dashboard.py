@@ -245,14 +245,22 @@ if df is not None:
     )
     fig_trend.update_layout(
         legend=dict(
-            orientation="m",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="center",
-            x=0.5,
-            title=None,
-            font=dict(size=10)
-        )
+            orientation="v",  # Vertikale Legende
+            x=1.02,  # Rechts außerhalb des Plots
+            y=1,  # Oben ausgerichtet
+            xanchor="left",
+            yanchor="top",
+            title=None,  # Kein Titel
+            font=dict(
+                size=11,
+                color="black",
+                family="Arial"
+            ),
+            bgcolor="rgba(255,255,255,0.9)",  # Heller Hintergrund für gute Lesbarkeit
+            bordercolor="lightgray",  # Rahmen
+            borderwidth=1
+        ),
+        margin=dict(r=150)  # Platz rechts schaffen, damit Legende nicht abgeschnitten wird
     )
 
     # Optional: Farblich hervorheben Gesamtlinie
