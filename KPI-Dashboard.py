@@ -238,7 +238,7 @@ if df is not None:
     # Hervorhebung der Linie "Gesamt"
     for trace in fig_trend.data:
         if trace.name == 'Gesamt':
-            trace.update(line=dict(color='gold', width=4, dash='dash'))  # schwarz, dick, gestrichelt
+            trace.update(line=dict(color='gold', width=2, dash='dash'))  # schwarz, dick, gestrichelt
         else:
             trace.update(line=dict(width=2))  # optionale Vereinheitlichung für andere Linien
     # Anzeige
