@@ -291,7 +291,9 @@ if df is not None:
             fig_verbrauch_monat.update_layout(
                 xaxis=dict(
                     tickformat="%Y-%m",
-                    tickmode="linear"
+                    tickmode="array",
+                    tickvals=verbrauch_monat['Monat'],
+                    ticktext=verbrauch_monat['Monat'].dt.strftime('%Y-%m')
                 )
             )
 
