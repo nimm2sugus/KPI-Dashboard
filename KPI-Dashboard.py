@@ -293,6 +293,14 @@ if df is not None:
                                        title=f"Auth. Typ Verteilung - {standort}",
                                        color='Auth. Typ', color_discrete_map=color_map_auth)
             st.plotly_chart(fig_auth_standort, use_container_width=True)
+            
+            # Provider Verteilung für Standort
+            prov_counts_standort = df_standort['Provider_kategorisiert'].value_counts().reset_index()
+            prov_counts_standort.columns = ['Provider', 'Anzahl']
+            fig_prov_standort = px.pie(prov_counts_standort, names='Provider', values='Anzahl', 
+                                       title="🏢 Top 10 Provider + Rest (gesamt)", color='Provider', 
+                                       color_discrete_map=color_map_provider)
+            st.plotly_chart(fig_prov_standort, use_container_width=True)
 
 else:
     st.info("Bitte lade eine bereinigte Excel-Datei hoch oder gib einen SharePoint-Link ein, um die Analyse zu starten.")
