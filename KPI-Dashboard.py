@@ -277,7 +277,8 @@ if df is not None:
             verbrauch_monat = df_standort.groupby(df_standort['Beendet'].dt.to_period('M')).agg(
                 Gesamtverbrauch_kWh=('Verbrauch_kWh', 'sum')
             ).reset_index()
-            verbrauch_monat['Monat'] = verbrauch_monat['Beendet'].dt.strftime('%Y-%m')
+
+            verbrauch_monat['Monat'] = verbrauch_monat['Beendet'].dt.to_timestamp()
 
             fig_verbrauch_monat = px.bar(
                 verbrauch_monat,
@@ -286,6 +287,14 @@ if df is not None:
                 title=f'Gesamtverbrauch pro Monat - {standort}',
                 labels={'Gesamtverbrauch_kWh': 'Verbrauch (kWh)', 'Monat': 'Monat'}
             )
+
+            fig_verbrauch_monat.update_layout(
+                xaxis=dict(
+                    tickformat="%Y-%m",
+                    tickmode="linear"
+                )
+            )
+
             st.plotly_chart(fig_verbrauch_monat, use_container_width=True)
 
             # Auth. Typ Verteilung für Standort
