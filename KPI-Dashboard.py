@@ -272,28 +272,27 @@ if df is not None:
     st.subheader("📊 Detaillierte Auswertung pro Standort")
 
     for standort in selected_standorte:
-        st.markdown(f"### 📍 {standort}")
+        with st.expander(f"📍 {standort}", expanded=False):
+            df_standort = df_filtered[df_filtered['Standortname'] == standort].copy()
 
-        df_standort = df_filtered[df_filtered['Standortname'] == standort].copy()
+            # Verbrauch pro Monat
+            verbrauch_monat = df_standort.groupby(df_standort['Beendet'].dt.to_period('M')).agg(
+                Gesamtverbrauch_kWh=('Verbrauch_kWh', 'sum')
+            ).reset_index()
+            verbrauch_monat['Monat'] = verbrauch_monat['Beendet'].dt.to_timestamp()
 
-        # Verbrauch pro Monat
-        verbrauch_monat = df_standort.groupby(df_standort['Beendet'].dt.to_period('M')).agg(
-            Gesamtverbrauch_kWh=('Verbrauch_kWh', 'sum')
-        ).reset_index()
-        verbrauch_monat['Monat'] = verbrauch_monat['Beendet'].dt.to_timestamp()
+            fig_verbrauch_monat = px.bar(verbrauch_monat, x='Monat', y='Gesamtverbrauch_kWh',
+                                         title=f'Gesamtverbrauch pro Monat - {standort}',
+                                         labels={'Gesamtverbrauch_kWh': 'Verbrauch (kWh)', 'Monat': 'Monat'})
+            st.plotly_chart(fig_verbrauch_monat, use_container_width=True)
 
-        fig_verbrauch_monat = px.bar(verbrauch_monat, x='Monat', y='Gesamtverbrauch_kWh',
-                                    title=f'Gesamtverbrauch pro Monat - {standort}',
-                                    labels={'Gesamtverbrauch_kWh': 'Verbrauch (kWh)', 'Monat': 'Monat'})
-        st.plotly_chart(fig_verbrauch_monat, use_container_width=True)
-
-        # Auth. Typ Verteilung für Standort
-        auth_counts_standort = df_standort['Auth. Typ'].value_counts().reset_index()
-        auth_counts_standort.columns = ['Auth. Typ', 'Anzahl']
-        fig_auth_standort = px.pie(auth_counts_standort, names='Auth. Typ', values='Anzahl',
-                                  title=f"Auth. Typ Verteilung - {standort}",
-                                  color='Auth. Typ', color_discrete_map=color_map_auth)
-        st.plotly_chart(fig_auth_standort, use_container_width=True)
+            # Auth. Typ Verteilung für Standort
+            auth_counts_standort = df_standort['Auth. Typ'].value_counts().reset_index()
+            auth_counts_standort.columns = ['Auth. Typ', 'Anzahl']
+            fig_auth_standort = px.pie(auth_counts_standort, names='Auth. Typ', values='Anzahl',
+                                       title=f"Auth. Typ Verteilung - {standort}",
+                                       color='Auth. Typ', color_discrete_map=color_map_auth)
+            st.plotly_chart(fig_auth_standort, use_container_width=True)
 
 else:
     st.info("Bitte lade eine bereinigte Excel-Datei hoch oder gib einen SharePoint-Link ein, um die Analyse zu starten.")
