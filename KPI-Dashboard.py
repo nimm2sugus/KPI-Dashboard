@@ -256,9 +256,6 @@ if df is not None:
                 color="black",
                 family="Arial"
             ),
-            bgcolor="rgba(255,255,255,0.9)",  # Heller Hintergrund für gute Lesbarkeit
-            bordercolor="lightgray",  # Rahmen
-            borderwidth=1
         ),
         margin=dict(r=150)  # Platz rechts schaffen, damit Legende nicht abgeschnitten wird
     )
