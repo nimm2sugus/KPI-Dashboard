@@ -245,7 +245,7 @@ if df is not None:
     )
     fig_trend.update_layout(
         legend=dict(
-            orientation="h",
+            orientation="m",
             yanchor="bottom",
             y=1.02,
             xanchor="center",
