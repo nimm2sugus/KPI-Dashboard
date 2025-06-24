@@ -118,9 +118,6 @@ if df is not None:
         help="Wähle einen oder mehrere Standorte aus."
     )
 
-    # Checkbox für Gesamtlinie einblenden
-    zeige_gesamt = st.checkbox("➕ Gesamtlinie einblenden", value=True)
-
     # Prüfung des Zeitraums
     if len(date_range) != 2:
         st.sidebar.error("Bitte einen gültigen Zeitraum auswählen.")
@@ -203,6 +200,9 @@ if df is not None:
 
     # Aggregationsart fest auf Summe gesetzt
     agg_method = 'sum'
+
+    # Checkbox für Gesamtlinie einblenden
+    zeige_gesamt = st.checkbox("➕ Gesamtlinie einblenden", value=True)
 
     # Zeitachse erstellen
     df_trend = df_filtered.copy()
