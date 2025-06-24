@@ -252,9 +252,7 @@ if df is not None:
             yanchor="top",
             title=None,  # Kein Titel
             font=dict(
-                size=11,
-                color="black",
-                family="Arial"
+                size=11
             ),
         ),
         margin=dict(r=150)  # Platz rechts schaffen, damit Legende nicht abgeschnitten wird
