@@ -230,7 +230,7 @@ if df is not None:
     # Gesamtlinie nur wenn Checkbox aktiv und keine 'Keine Aggregation'
     if zeige_gesamt and agg_level != 'Keine Aggregation':
         gesamt_df = trend_df.groupby('Zeit', as_index=False)['KPI_Wert'].sum()
-        gesamt_df['Standortname'] = 'Gesamt'
+        gesamt_df['Standortname'] = 'Gesamtportfolio (basierend auf Standortauswahl)'
         trend_df = pd.concat([trend_df, gesamt_df], ignore_index=True)
 
     # Liniendiagramm mit horizontaler Legende
@@ -250,9 +250,9 @@ if df is not None:
             y=1,  # Oben ausgerichtet
             xanchor="left",
             yanchor="top",
-            title=None,  # Kein Titel
+            title="Ausgewählte Standorte",
             font=dict(
-                size=11
+                size=12
             ),
         ),
         margin=dict(r=150)  # Platz rechts schaffen, damit Legende nicht abgeschnitten wird
@@ -260,7 +260,7 @@ if df is not None:
 
     # Optional: Farblich hervorheben Gesamtlinie
     for trace in fig_trend.data:
-        if trace.name == 'Gesamt':
+        if trace.name == 'Gesamtportfolio (basierend auf Standortauswahl)':
             trace.update(line=dict(color='gold', width=3, dash='dash'))  # deutlichere Linie
         else:
             trace.update(line=dict(width=2))
