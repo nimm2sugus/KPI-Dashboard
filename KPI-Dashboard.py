@@ -37,6 +37,7 @@ st.title("🔌 Ladeanalyse Dashboard")
 input_method = st.radio("📂 Datenquelle wählen:", ["Datei-Upload", "SharePoint-Link"])
 
 df = None
+selected_standorte = []
 
 if input_method == "Datei-Upload":
     uploaded_file = st.file_uploader("📁 Bereinigte Excel-Datei hochladen", type=["xlsx", "xls"])
@@ -108,7 +109,7 @@ if df is not None:
     max_date = df['Beendet'].max().date()
     date_range = st.sidebar.date_input("Zeitraum auswählen", value=(min_date, max_date), min_value=min_date, max_value=max_date)
 
-    # Standortfilter (optimiert mit Tooltip)
+    # Standortfilter (optimiert)
     standorte = sorted(df['Standortname'].dropna().unique())
     selected_standorte = st.sidebar.multiselect(
         "📍 Standort(e) auswählen",
@@ -116,6 +117,9 @@ if df is not None:
         default=standorte,
         help="Wähle einen oder mehrere Standorte aus."
     )
+
+    # Checkbox für Gesamtlinie einblenden
+    zeige_gesamt = st.checkbox("➕ Gesamtlinie einblenden", value=True)
 
     # Prüfung des Zeitraums
     if len(date_range) != 2:
@@ -194,10 +198,8 @@ if df is not None:
     st.subheader("📈 Trendentwicklung ausgewählter KPIs")
 
     kpi_option = st.selectbox("KPI auswählen", ['Verbrauch_kWh', 'Kosten_EUR', 'P_Schnitt', 'Ladezeit_h', 'Anzahl_Ladevorgaenge'])
-    agg_level = st.selectbox("Aggregationsebene", ['Monat', 'Tag', 'Keine Aggregation'])
 
-    # Checkbox für Gesamtlinie
-    zeige_gesamt = st.checkbox("➕ Gesamtlinie einblenden", value=True)
+    agg_level = st.selectbox("Aggregationsebene", ['Monat', 'Tag', 'Keine Aggregation'])
 
     # Aggregationsart fest auf Summe gesetzt
     agg_method = 'sum'
@@ -225,23 +227,22 @@ if df is not None:
         else:
             trend_df = df_trend.groupby(['Zeit', 'Standortname']).agg(KPI_Wert=(kpi_option, 'sum')).reset_index()
 
-    # Gesamtlinie (nur wenn Checkbox aktiv)
+    # Gesamtlinie nur wenn Checkbox aktiv und keine 'Keine Aggregation'
     if zeige_gesamt and agg_level != 'Keine Aggregation':
         gesamt_df = trend_df.groupby('Zeit', as_index=False)['KPI_Wert'].sum()
         gesamt_df['Standortname'] = 'Gesamt'
         trend_df = pd.concat([trend_df, gesamt_df], ignore_index=True)
 
-    # Liniendiagramm
+    # Liniendiagramm mit horizontaler Legende
     fig_trend = px.line(
         trend_df,
         x='Zeit',
         y='KPI_Wert',
         color='Standortname',
         markers=True,
-        title=f"Trendentwicklung: {kpi_option} ({agg_level})",
+        title=f'📉 Verlauf von {kpi_option} (Summe) nach Standort',
+        labels={'KPI_Wert': kpi_option, 'Zeit': 'Zeit'}
     )
-
-    # Horizontale Legendeneinstellung
     fig_trend.update_layout(
         legend=dict(
             orientation="h",
@@ -254,17 +255,15 @@ if df is not None:
         )
     )
 
-    # Farblich die Gesamtlinie hervorheben
+    # Optional: Farblich hervorheben Gesamtlinie
     for trace in fig_trend.data:
         if trace.name == 'Gesamt':
-            trace.update(line=dict(color='gold', width=2, dash='dash'))
+            trace.update(line=dict(color='gold', width=3, dash='dash'))  # deutlichere Linie
         else:
             trace.update(line=dict(width=2))
 
+    # Anzeige
     st.plotly_chart(fig_trend, use_container_width=True)
-
-else:
-    st.info("Bitte lade zuerst eine Excel-Datei oder gib einen gültigen SharePoint-Link ein.")
 
     # --- Detaillierte Auswertung je Standort ---
     st.subheader("📊 Detaillierte Auswertung pro Standort")
@@ -288,19 +287,10 @@ else:
         # Auth. Typ Verteilung für Standort
         auth_counts_standort = df_standort['Auth. Typ'].value_counts().reset_index()
         auth_counts_standort.columns = ['Auth. Typ', 'Anzahl']
-
         fig_auth_standort = px.pie(auth_counts_standort, names='Auth. Typ', values='Anzahl',
                                   title=f"Auth. Typ Verteilung - {standort}",
-                                  color='Auth. Typ',
-                                  color_discrete_map=color_map_auth)
+                                  color='Auth. Typ', color_discrete_map=color_map_auth)
         st.plotly_chart(fig_auth_standort, use_container_width=True)
 
-        # Provider Verteilung für Standort
-        prov_counts_standort = df_standort['Provider_kategorisiert'].value_counts().reset_index()
-        prov_counts_standort.columns = ['Provider', 'Anzahl']
-
-        fig_prov_standort = px.pie(prov_counts_standort, names='Provider', values='Anzahl',
-                                  title=f"Provider Verteilung - {standort}",
-                                  color='Provider',
-                                  color_discrete_map=color_map_provider)
-        st.plotly_chart(fig_prov_standort, use_container_width=True)
+else:
+    st.info("Bitte lade eine bereinigte Excel-Datei hoch oder gib einen SharePoint-Link ein, um die Analyse zu starten.")
