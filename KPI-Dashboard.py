@@ -192,7 +192,7 @@ if df is not None:
     # --- Trendentwicklung ---
     st.subheader("📈 Trendentwicklung ausgewählter KPIs")
 
-    kpi_option = st.selectbox("KPI auswählen", ['Verbrauch_kWh', 'Kosten_EUR', 'P_Schnitt', 'Ladezeit_h', 'Anzahl_Ladevorgaenge'])
+    kpi_option = st.selectbox("KPI auswählen", ['Verbrauch_kWh', 'Kosten_EUR', 'Ladezeit_h', 'Anzahl_Ladevorgaenge'])
 
     agg_level = st.selectbox("Aggregationsebene", ['Monat', 'Tag', 'Keine Aggregation'])
 
@@ -239,7 +239,7 @@ if df is not None:
         color='Standortname',
         markers=True,
         title=f'📉 Verlauf von {kpi_option} (Summe) nach Standort',
-        labels={'KPI_Wert': kpi_option, 'Zeit': 'Zeit'}
+        labels={'KPI_Wert': kpi_option, 'Zeit': 'Zeitachse'}
     )
     fig_trend.update_layout(
         legend=dict(
