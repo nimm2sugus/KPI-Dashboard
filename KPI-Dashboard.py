@@ -184,10 +184,49 @@ if df is not None:
     fig_auth = px.pie(auth_counts, names='Auth. Typ', values='Anzahl', title="🔄 Auth. Typ Verteilung (gesamt)", color='Auth. Typ', color_discrete_map=color_map_auth)
     st.plotly_chart(fig_auth, use_container_width=True)
 
+    auth_trend_all = (
+        df_filtered
+        .groupby([df_filtered['Beendet'].dt.to_period('M'), 'Auth. Typ'])
+        .size()
+        .reset_index(name='Anzahl')
+    )
+    auth_trend_all['Beendet'] = auth_trend_all['Beendet'].dt.to_timestamp()
+    auth_trend_all['Prozent'] = auth_trend_all.groupby('Beendet')['Anzahl'].transform(lambda x: x / x.sum() * 100)
+
+    fig_auth_trend_all = px.bar(
+        auth_trend_all,
+        x="Beendet",
+        y="Prozent",
+        color="Auth. Typ",
+        title="📊 Prozentualer Verlauf der Auth. Typen (gesamt)",
+        color_discrete_map=color_map_auth
+    )
+    fig_auth_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
+    st.plotly_chart(fig_auth_trend_all, use_container_width=True)
+
     prov_counts = df_filtered['Provider_kategorisiert'].value_counts().reset_index()
     prov_counts.columns = ['Provider', 'Anzahl']
     fig_prov = px.pie(prov_counts, names='Provider', values='Anzahl', title="🏢 Top 10 Provider + Rest (gesamt)", color='Provider', color_discrete_map=color_map_provider)
     st.plotly_chart(fig_prov, use_container_width=True)
+
+    prov_trend_all = (
+        df_filtered
+        .groupby(['Monat', 'Provider_kategorisiert'])
+        .size()
+        .reset_index(name='Anzahl')
+    )
+    prov_trend_all['Prozent'] = prov_trend_all.groupby('Monat')['Anzahl'].transform(lambda x: x / x.sum() * 100)
+
+    fig_prov_trend_all = px.bar(
+        prov_trend_all,
+        x="Monat",
+        y="Prozent",
+        color="Provider_kategorisiert",
+        title="📊 Prozentualer Verlauf der Provider (gesamt)",
+        color_discrete_map=color_map_provider
+    )
+    fig_prov_trend_all.update_layout(barmode='stack', yaxis_title='Anteil [%]')
+    st.plotly_chart(fig_prov_trend_all, use_container_width=True)
 
     # --- Trendentwicklung ---
     st.subheader("📈 Trendentwicklung ausgewählter KPIs")
