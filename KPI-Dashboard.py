@@ -165,7 +165,7 @@ if df is not None:
     color_map_provider = {prov: colors_provider[i % len(colors_provider)] for i, prov in enumerate(providers)}
 
     # --- Portfolio-Übersicht ---
-    st.subheader("🌍 Portfolio-Übersicht")
+    st.subheader("🌍 Portfolio-Übersicht (ohne SINZ)")
     col1, col2 = st.columns(2)
 
     with col1:
@@ -174,7 +174,7 @@ if df is not None:
         st.plotly_chart(fig1, use_container_width=True)
 
     with col2:
-        st.subheader("💶 Ladekosten nach Standort (€)")
+        st.subheader("💶 Ladekosten nach Standort (€) ohne KK-Zahlungen")
         fig2 = px.bar(grouped, x="Standortname", y="Kosten_EUR_sum", color="Standortname")
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -259,7 +259,7 @@ if df is not None:
     # Optional: Farblich hervorheben Gesamtlinie
     for trace in fig_trend.data:
         if trace.name == 'Gesamtportfolio (basierend auf Standortauswahl)':
-            trace.update(line=dict(color='gold', width=3, dash='dash'))  # deutlichere Linie
+            trace.update(line=dict(color='gold', width=2, dash='dash'))  # deutlichere Linie
         else:
             trace.update(line=dict(width=2))
 
